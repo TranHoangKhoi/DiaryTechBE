@@ -2,10 +2,11 @@ import express from 'express';
 import {
   createProductionLog,
   getProductionLogsByActivityAndFarm,
+  getProductionLogsByFarm,
   getProductionLogsByID,
   handleGetImageProductionLog
 } from '../controllers/productionLogs.controller';
-import { auth, checkRole } from '../middleware/auth';
+import { auth, checkRole } from '../middleware/auth.midleware';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
@@ -44,9 +45,12 @@ const router = express.Router();
 
 router.get('/images/:filename', handleGetImageProductionLog);
 // Public routes
-router.post('/', upload.any(), createProductionLog);
+router.post('/', auth, createProductionLog);
 router.get('/', getProductionLogsByActivityAndFarm);
 router.get('/:id', getProductionLogsByID);
+
+//
+router.get('/farm/:farm_id', auth, getProductionLogsByFarm);
 
 // Admin-only route (ví dụ)
 router.get('/admin-only', auth, checkRole('admin'), (req, res) => {

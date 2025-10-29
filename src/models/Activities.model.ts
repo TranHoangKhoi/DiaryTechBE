@@ -3,6 +3,7 @@ import mongoose, { Document } from 'mongoose';
 interface IActivities extends Document {
   farm_type_id: string;
   activity_name: string;
+  image: string;
   description: string;
   fields: [
     {
@@ -19,6 +20,11 @@ interface IActivities extends Document {
 const ActivitySchema = new mongoose.Schema({
   farm_type_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Farmtype', required: true },
   activity_name: { type: String, required: true },
+  image: {
+    type: String,
+    required: true,
+    default: 'https://res.cloudinary.com/delix6nht/image/upload/v1760068625/3_xs0l5w.png'
+  },
   description: { type: String },
   fields: [
     {

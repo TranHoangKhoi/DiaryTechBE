@@ -14,14 +14,15 @@ const createActivitySchema = z.object({
   farm_type_id: z.string(),
   activity_name: z.string(),
   description: z.string(),
+  image: z.string(),
   fields: z.array(fieldSchema) // Sử dụng z.array() để định nghĩa mảng
 });
 
 export const createActivity = async (req: Request, res: Response): Promise<void> => {
   //   res.json(req.body);
   try {
-    const { farm_type_id, activity_name, description, fields } = createActivitySchema.parse(req.body);
-    const activityRes = new Activities({ farm_type_id, activity_name, description, fields });
+    const { farm_type_id, activity_name, description, fields, image } = createActivitySchema.parse(req.body);
+    const activityRes = new Activities({ farm_type_id, activity_name, description, fields, image });
     await activityRes.save();
     res.status(201).json(`Created Activity: ${activity_name}`);
   } catch (error) {

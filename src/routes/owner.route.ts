@@ -1,6 +1,6 @@
 import express from 'express';
 import { getFarmer, getFarmerById } from '../controllers/owner.controller';
-import { auth, checkRole } from '../middleware/auth';
+import { auth, checkRole } from '../middleware/auth.midleware';
 
 const router = express.Router();
 

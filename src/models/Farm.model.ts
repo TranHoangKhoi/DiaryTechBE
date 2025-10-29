@@ -1,35 +1,30 @@
 import mongoose, { Document } from 'mongoose';
 
 interface IProvince {
-  province_code: string;
   name: string;
+  code: number;
+  division_type: string;
+  codename: string;
+  phone_code: number;
+  wards: IWard[];
 }
 
 interface IWard {
-  ward_name: string;
-  ward_code: string;
-  province_code: string;
-  province_name: string;
-  province_short_name: string;
-  province_code_short: string;
-  place_type: string;
-  has_merger: boolean;
-  old_units: string[];
-  old_units_count: number;
-  merger_details: string;
-  province_is_merged: boolean;
-  province_merged_with: string[];
-  administrative_center: string;
+  name: string;
+  code: number;
+  division_type: string;
+  codename: string;
+  province_code: number;
 }
 
 export interface IFarm extends Document {
-  // owner_id: mongoose.Types.ObjectId;
+  owner_id: mongoose.Types.ObjectId;
   user_id: mongoose.Types.ObjectId;
   farm_name: string;
   location: string;
   farm_type_id: mongoose.Types.ObjectId;
   geo_location?: string;
-  area: number;
+  area: string;
   avatar: string;
   soil_type?: string;
   farm_status: 'active' | 'inactive' | 'under_maintenance';
@@ -40,38 +35,34 @@ export interface IFarm extends Document {
   updated_at: Date;
 }
 
+const WardSchema = new mongoose.Schema<IWard>(
+  {
+    name: { type: String, required: true },
+    code: { type: Number, required: true },
+    division_type: { type: String, required: true },
+    codename: { type: String, required: true },
+    province_code: { type: Number, required: true }
+  },
+  { _id: false } // không tạo _id riêng cho subdocument
+);
+
 // SubSchema cho province
 const ProvinceSchema = new mongoose.Schema<IProvince>(
   {
-    province_code: { type: String, required: true },
-    name: { type: String, required: true }
+    name: { type: String, required: true },
+    code: { type: Number, required: true },
+    division_type: { type: String, required: true },
+    codename: { type: String, required: true },
+    phone_code: { type: Number, required: true },
+    wards: { type: [WardSchema], required: true }
   },
   { _id: false } // không tạo _id riêng cho subdocument
 );
 
 // SubSchema cho ward
-const WardSchema = new mongoose.Schema<IWard>(
-  {
-    ward_name: { type: String, required: true },
-    ward_code: { type: String, required: true },
-    province_code: { type: String, required: true },
-    province_name: { type: String, required: true },
-    province_short_name: { type: String },
-    province_code_short: { type: String },
-    place_type: { type: String },
-    has_merger: { type: Boolean, default: false },
-    old_units: { type: [String], default: [] },
-    old_units_count: { type: Number, default: 0 },
-    merger_details: { type: String },
-    province_is_merged: { type: Boolean, default: false },
-    province_merged_with: { type: [String], default: [] },
-    administrative_center: { type: String }
-  },
-  { _id: false }
-);
 
 const FarmSchema = new mongoose.Schema<IFarm>({
-  // owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   farm_name: { type: String, required: true },
   location: { type: String, required: true },
@@ -80,8 +71,8 @@ const FarmSchema = new mongoose.Schema<IFarm>({
     ref: 'Farmtype',
     required: true
   },
-  geo_location: { type: String },
-  area: { type: Number, required: true },
+  geo_location: { type: [Number] },
+  area: { type: String },
   soil_type: { type: String },
   farm_status: {
     type: String,

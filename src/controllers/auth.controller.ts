@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { Types } from 'mongoose';
 import { Request, Response } from 'express';
+import UserSubscriptionModel from '~/models/UserSubscription.model';
 
 const farmSchema = z.object({
   farm_name: z.string().min(1, { message: 'Tên trang trại là bắt buộc' }),
@@ -80,6 +81,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone, password } = loginSchema.parse(req.body);
+    console.log(req.body);
+
     const user = await User.findOne({ phone });
 
     if (!user) {
@@ -110,13 +113,33 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Lấy thông tin user
     const user = await User.findById(req.user?.id).select('-password');
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ success: false, message: 'User not found' });
       return;
     }
-    res.json(user);
+
+    // Lấy danh sách gói thuê bao của user
+    const subscriptions = await UserSubscriptionModel.find({ user_id: user._id })
+      .populate('module_id', 'key name description')
+      .populate('package_id', 'name max_sub_accounts price_per_month duration_in_days');
+
+    // Gộp subscriptions vào user object
+    const userWithSubs = {
+      ...user.toObject(),
+      subscriptions // thêm danh sách thuê bao vào user
+    };
+
+    res.json({
+      success: true,
+      message: 'Lấy thông tin người dùng thành công.',
+      data: {
+        user: userWithSubs
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

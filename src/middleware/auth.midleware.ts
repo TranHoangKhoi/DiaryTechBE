@@ -22,6 +22,15 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction): any =
 export const checkRole =
   (role: string) =>
   (req: AuthRequest, res: Response, next: NextFunction): any => {
-    if (req.user?.role !== role) return res.status(403).json({ message: 'Forbidden' });
+    // Nếu là superadmin thì bỏ qua check
+    if (req.user?.role === 'superadmin') {
+      return next();
+    }
+
+    // Nếu không phải role yêu cầu thì cấm
+    if (req.user?.role !== role) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
     next();
   };

@@ -3,7 +3,7 @@ import fs from 'fs';
 import mongoose from 'mongoose';
 import path from 'path';
 import { z } from 'zod';
-import ProductionLogs from '~/models/ProductionLogs.model';
+import { default as ProductionLogs, default as ProductionLogsModel } from '~/models/ProductionLogs.model';
 
 // Schema cho chemical_usages
 const chemicalUsageSchema = z.object({
@@ -33,124 +33,88 @@ const productionLogSchema = z.object({
 export type ProductionLogInput = z.infer<typeof productionLogSchema>;
 
 // Hàm tạo mới ProductionLog
-export const createProductionLog = async (req: Request, res: Response): Promise<void> => {
+export const createProductionLog = async (req: Request, res: Response) => {
   try {
-    const { activity_id, created_by, chemical_usages, date, farm_id, notes, data } = req.body;
-    console.log('Received Body:', req.body);
+    const { farm_id, activity_id, data, chemical_usages, notes, date } = req.body;
 
-    const parsedData = JSON.parse(req.body.data);
+    const userId = req.user?.id;
+    const newProductionLog = new ProductionLogsModel({
+      farm_id,
+      activity_id,
+      data,
+      chemical_usages,
+      notes,
+      date,
+      created_by: userId
+    });
 
-    // Gộp file fieldname vào parsedData
-    if (Array.isArray(req.files)) {
-      req.files.forEach((file) => {
-        if (file.fieldname.includes('[')) {
-          const fieldName = decodeURIComponent(file.fieldname.split('[')[1].split(']')[0]);
-          parsedData[fieldName] = file.filename;
-        }
-      });
-    }
-
-    // Gán lại vào req.body.data
-    req.body.data = JSON.stringify(parsedData);
-
-    // In log kiểm tra
-    console.log('Final req.body.data:', req.body);
-
-    console.log('Merged Data:', parsedData);
-
-    if (typeof req.body.data === 'string') {
-      req.body.data = JSON.parse(req.body.data);
-    }
-
-    if (typeof req.body.chemical_usages === 'string') {
-      req.body.chemical_usages = JSON.parse(req.body.chemical_usages);
-    }
-
-    // Parse và validate dữ liệu từ FE với Zod
-    const parsedDataFull = productionLogSchema.parse(req.body);
-
-    // // Chuyển đổi các chuỗi thành ObjectId (nếu cần)
-    const productionLogData = {
-      farm_id: new mongoose.Types.ObjectId(parsedDataFull.farm_id),
-      activity_id: new mongoose.Types.ObjectId(parsedDataFull.activity_id),
-      date: new Date(parsedDataFull.date),
-      data: parsedDataFull.data,
-      chemical_usages: [],
-      notes: parsedDataFull.notes,
-      created_by: new mongoose.Types.ObjectId(parsedDataFull.created_by)
-    };
-
-    // // Tạo mới ProductionLog
-    const newLog = new ProductionLogs(productionLogData);
-    const savedLog = await newLog.save();
+    const savedLog = await newProductionLog.save();
 
     res.status(201).json({
-      message: 'Nhật ký sản xuất đã được tạo thành công',
+      success: true,
+      message: 'Tạo production log thành công',
       data: savedLog
     });
-    return;
   } catch (error) {
-    console.error(error);
-    if (error instanceof z.ZodError) {
-      // Trả về lỗi validate từ Zod
-      res.status(400).json({
-        message: 'Dữ liệu không hợp lệ',
-        errors: error.errors
-      });
-      return;
-    }
-
+    console.error('Error creating production log:', error);
     res.status(500).json({
+      success: false,
       message: 'Lỗi server',
-      error: error
+      error
     });
-    return;
   }
 };
 
-// export const getProductionLogsByActivityAndFarm = async (req: Request, res: Response): Promise<void> => {
+// Lấy danh sách hoạt động theo farmId
+export const getProductionLogsByFarm = async (req: Request, res: Response) => {
+  try {
+    const { farm_id } = req.params;
+
+    if (!farm_id) {
+      res.status(400).json({
+        success: false,
+        message: 'Thiếu farm_id'
+      });
+    }
+
+    const logs = await ProductionLogsModel.find({ farm_id })
+      .populate('farm_id', 'farm_name avatar location') // lấy thông tin farm cơ bản
+      .populate('activity_id', 'activity_name') // lấy tên activity
+      .populate('created_by', 'name avatar') // lấy thông tin user tạo log
+      // .populate('chemical_usages.chemical_id', 'name unit') // lấy tên + đơn vị hóa chất
+      .sort({ created_at: -1 }); // sắp xếp mới nhất trước
+
+    res.status(200).json({
+      success: true,
+      message: 'Lấy danh sách production logs thành công',
+      data: logs
+    });
+  } catch (error) {
+    console.error('Error fetching production logs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server',
+      error
+    });
+  }
+};
+
+// Lấy chi tiết nhật ký bằng id nhật ký
+// export const getProductionLogsByID = async (req: Request, res: Response): Promise<void> => {
 //   try {
 //     // Lấy activity_id và farm_id từ query params hoặc body
-//     const { activity_id, farm_id } = req.query;
-
-//     console.log(activity_id, farm_id);
-
-//     // Kiểm tra xem các tham số có được cung cấp không
-//     if (!activity_id || !farm_id) {
-//       res.status(400).json({
-//         message: 'Vui lòng cung cấp cả activity_id và farm_id'
-//       });
-//       return;
-//     }
+//     const { id } = req.params;
+//     console.log('Id Productions log: ', id);
 
 //     // Chuyển đổi thành ObjectId (nếu cần)
-//     const activityId = new mongoose.Types.ObjectId(activity_id as string);
-//     const farmId = new mongoose.Types.ObjectId(farm_id as string);
+//     const productionLogId = new mongoose.Types.ObjectId(id as string);
 
 //     // Truy vấn ProductionLogs
-//     const productionLogs = await ProductionLogs.find({
-//       activity_id: activityId,
-//       farm_id: farmId
-//     })
-//       .populate('activity_id', 'activity_name description') // Populate thông tin Activity
-//       .populate('farm_id', 'farm_name location') // Populate thông tin Farm từ User.farms
-//       .populate('chemical_usages.chemical_id', 'chemical_name') // Populate thông tin Chemical
-//       .populate('created_by', 'username email') // Populate thông tin User
-//       .sort({ date: -1 }); // Sắp xếp theo ngày giảm dần (mới nhất trước)
-
-//     // Kiểm tra kết quả
-//     if (!productionLogs || productionLogs.length === 0) {
-//       res.status(404).json({
-//         message: 'Không tìm thấy ProductionLogs nào với activity_id và farm_id này'
-//       });
-//       return;
-//     }
+//     const productionLog = await ProductionLogs.findById(productionLogId);
+//     console.log('productionLog: ', productionLog);
 
 //     // Trả về danh sách ProductionLogs
-//     res.status(200).json({
-//       message: 'Lấy danh sách ProductionLogs thành công',
-//       data: productionLogs
-//     });
+//     res.status(200).json(productionLog);
 //   } catch (error) {
 //     console.error(error);
 //     res.status(500).json({
@@ -162,25 +126,44 @@ export const createProductionLog = async (req: Request, res: Response): Promise<
 
 export const getProductionLogsByID = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Lấy activity_id và farm_id từ query params hoặc body
     const { id } = req.params;
-    console.log('Id Productions log: ', id);
 
-    // Chuyển đổi thành ObjectId (nếu cần)
-    const productionLogId = new mongoose.Types.ObjectId(id as string);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'ID không hợp lệ' });
+      return;
+    }
 
-    // Truy vấn ProductionLogs
-    const productionLog = await ProductionLogs.findById(productionLogId);
-    console.log('productionLog: ', productionLog);
+    // Truy vấn và populate cả activity và farm type
+    const productionLog = await ProductionLogsModel.findById(id)
+      .populate({
+        path: 'activity_id',
+        populate: {
+          path: 'farm_type_id', // populate tiếp farm_type_id trong activity
+          model: 'Farmtype'
+        }
+      })
+      .populate({
+        path: 'farm_id', // populate thêm farm nếu cần
+        model: 'Farm'
+      })
+      .populate({
+        path: 'created_by', // populate thêm user nếu muốn
+        select: 'name phone avatar'
+      });
 
-    // Trả về danh sách ProductionLogs
-    res.status(200).json(productionLog);
+    if (!productionLog) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy nhật ký sản xuất' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Lấy chi tiết nhật ký sản xuất thành công',
+      data: productionLog
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      message: 'Lỗi server',
-      error: error
-    });
+    res.status(500).json({ success: false, message: 'Lỗi server', error });
   }
 };
 

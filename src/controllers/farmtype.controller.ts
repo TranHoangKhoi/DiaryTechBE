@@ -5,7 +5,8 @@ import Farmtype from '../models/Farmtype.model';
 // Schema validation với Zod
 const craeteFarmtypeSchema = z.object({
   type_name: z.string().min(4),
-  description: z.string()
+  description: z.string(),
+  image: z.string()
 });
 
 const updateFarmtypeSchema = z.object({
@@ -15,8 +16,8 @@ const updateFarmtypeSchema = z.object({
 
 export const createFarmType = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { type_name, description } = craeteFarmtypeSchema.parse(req.body);
-    const farmTypeRes = new Farmtype({ type_name, description });
+    const { type_name, description, image } = craeteFarmtypeSchema.parse(req.body);
+    const farmTypeRes = new Farmtype({ type_name, description, image });
     await farmTypeRes.save();
     res.status(201).json(`Created Farm Type: ${type_name}`);
   } catch (error) {

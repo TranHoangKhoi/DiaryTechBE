@@ -10,6 +10,11 @@ import ownerRoutes from './routes/owner.route';
 import farmTypeRoutes from './routes/farmtype.route';
 import activityRoutes from './routes/activity.route';
 import productionLogsRoutes from './routes/productionLogs.route';
+import farmRoutes from './routes/farm.route';
+import serviceModuleRoutes from './routes/serviceModule.route';
+import subscriptionPackageRoutes from './routes/subscriptionPackage.route';
+import userSubscriptionRoutes from './routes/userSubscription.route';
+import mapRoutes from './routes/map.route';
 
 const app: Express = express();
 
@@ -34,5 +39,10 @@ app.use('/api/owner', ownerRoutes);
 app.use('/api/farmtype', farmTypeRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/productionLogs', productionLogsRoutes);
+app.use('/api/farm', farmRoutes);
+app.use('/api/serviceModule', serviceModuleRoutes);
+app.use('/api/subscriptionPackage', subscriptionPackageRoutes);
+app.use('/api/userSubscription', userSubscriptionRoutes);
+app.use('/api/map', mapRoutes);
 
 export default app;

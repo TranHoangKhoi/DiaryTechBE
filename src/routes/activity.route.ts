@@ -5,7 +5,7 @@ import {
   getActivityById,
   updateActivities
 } from '../controllers/activity.controller';
-import { auth, checkRole } from '../middleware/auth';
+import { auth, checkRole } from '../middleware/auth.midleware';
 
 const router = express.Router();
 
