@@ -17,11 +17,13 @@ import userSubscriptionRoutes from './routes/userSubscription.route';
 import mapRoutes from './routes/map.route';
 
 const app: Express = express();
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: '*' }));
 app.use(express.json());
+
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 phút

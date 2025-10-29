@@ -7,10 +7,7 @@ const connectDB = async (): Promise<void> => {
   }
 
   try {
-    await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    } as mongoose.ConnectOptions);
+    await mongoose.connect(uri, {} as mongoose.ConnectOptions);
     console.log('MongoDB connected');
   } catch (error) {
     console.error('MongoDB connection error:', error);
