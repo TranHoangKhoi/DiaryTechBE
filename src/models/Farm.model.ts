@@ -1,20 +1,24 @@
 import mongoose, { Document } from 'mongoose';
 
 interface IProvince {
+  id: string;
+  province_code: string;
   name: string;
-  code: number;
-  division_type: string;
-  codename: string;
-  phone_code: number;
-  wards: IWard[];
+  short_name: string;
+  code: string;
+  place_type: string;
+  country: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 interface IWard {
+  id: string;
+  ward_code: string;
   name: string;
-  code: number;
-  division_type: string;
-  codename: string;
-  province_code: number;
+  province_code: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface IFarm extends Document {
@@ -35,28 +39,33 @@ export interface IFarm extends Document {
   updated_at: Date;
 }
 
+// ✅ SubSchema cho Ward
 const WardSchema = new mongoose.Schema<IWard>(
   {
+    id: { type: String },
+    ward_code: { type: String, required: true },
     name: { type: String, required: true },
-    code: { type: Number, required: true },
-    division_type: { type: String, required: true },
-    codename: { type: String, required: true },
-    province_code: { type: Number, required: true }
+    province_code: { type: String, required: true },
+    created_at: { type: String, default: null },
+    updated_at: { type: String, default: null }
   },
-  { _id: false } // không tạo _id riêng cho subdocument
+  { _id: false }
 );
 
-// SubSchema cho province
+// ✅ SubSchema cho Province
 const ProvinceSchema = new mongoose.Schema<IProvince>(
   {
+    id: { type: String },
+    province_code: { type: String, required: true },
     name: { type: String, required: true },
-    code: { type: Number, required: true },
-    division_type: { type: String, required: true },
-    codename: { type: String, required: true },
-    phone_code: { type: Number, required: true },
-    wards: { type: [WardSchema], required: true }
+    short_name: { type: String },
+    code: { type: String },
+    place_type: { type: String },
+    country: { type: String, default: 'VN' },
+    created_at: { type: String, default: null },
+    updated_at: { type: String, default: null }
   },
-  { _id: false } // không tạo _id riêng cho subdocument
+  { _id: false }
 );
 
 // SubSchema cho ward
