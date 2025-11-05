@@ -4,6 +4,6 @@ import { auth } from '../middleware/auth.midleware';
 
 const router = express.Router();
 router.get('/getFarm', auth, getAllFarmsMap);
-router.get('/convertAddress', auth, handleConvertAddress);
+router.get('/convertAddress', handleConvertAddress);
 
 export default router;
