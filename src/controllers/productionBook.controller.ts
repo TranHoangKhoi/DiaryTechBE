@@ -24,10 +24,10 @@ export const createProductionBook = async (req: Request, res: Response) => {
       status: 'ongoing'
     });
 
-    return res.json({ success: true, data: newBook });
+    res.json({ success: true, data: newBook });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ success: false, message: 'Lỗi tạo nhật ký' });
+    res.status(500).json({ success: false, message: 'Lỗi tạo nhật ký' });
   }
 };
 
