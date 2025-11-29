@@ -96,4 +96,12 @@ const FarmSchema = new mongoose.Schema<IFarm>({
   updated_at: { type: Date, default: Date.now }
 });
 
+FarmSchema.index({ owner_id: 1 });
+FarmSchema.index({ user_id: 1 });
+FarmSchema.index({ farm_type_id: 1 });
+FarmSchema.index({ created_at: -1 });
+FarmSchema.index({ farm_status: 1 });
+FarmSchema.index({ geo_location: '2dsphere' }); // cho query vị trí (map)
+FarmSchema.index({ owner_id: 1, farm_type_id: 1 });
+
 export default mongoose.model<IFarm>('Farm', FarmSchema);

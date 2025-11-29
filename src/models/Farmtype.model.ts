@@ -16,4 +16,7 @@ const FarmTypeSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now }
 });
 
+FarmTypeSchema.index({ type_name: 1 });
+FarmTypeSchema.index({ created_at: -1 });
+
 export default mongoose.model<IFarmType>('Farmtype', FarmTypeSchema);

@@ -28,4 +28,9 @@ const PackageSubscriptionSchema = new mongoose.Schema<IPackageSubscription>({
   updated_at: { type: Date, default: Date.now }
 });
 
+PackageSubscriptionSchema.index({ owner_id: 1 });
+PackageSubscriptionSchema.index({ package_id: 1 });
+PackageSubscriptionSchema.index({ status: 1 });
+PackageSubscriptionSchema.index({ expiry_date: -1 });
+
 export default mongoose.model<IPackageSubscription>('PackageSubscription', PackageSubscriptionSchema);

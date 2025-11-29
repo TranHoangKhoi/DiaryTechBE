@@ -20,4 +20,9 @@ const SubscriptionPackageSchema = new mongoose.Schema({
   description: { type: String }
 });
 
+SubscriptionPackageSchema.index({ module_id: 1 });
+SubscriptionPackageSchema.index({ name: 1 });
+SubscriptionPackageSchema.index({ price_per_month: 1 });
+SubscriptionPackageSchema.index({ duration_in_days: 1 });
+
 export default mongoose.model<ISubscriptionPackage>('SubscriptionPackage', SubscriptionPackageSchema);

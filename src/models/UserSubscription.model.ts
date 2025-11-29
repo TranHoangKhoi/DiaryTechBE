@@ -21,4 +21,11 @@ const UserSubscriptionSchema = new mongoose.Schema({
   remaining_sub_accounts: { type: Number, default: 0 }
 });
 
+UserSubscriptionSchema.index({ user_id: 1 });
+UserSubscriptionSchema.index({ module_id: 1 });
+UserSubscriptionSchema.index({ package_id: 1 });
+UserSubscriptionSchema.index({ status: 1 });
+UserSubscriptionSchema.index({ end_date: -1 });
+UserSubscriptionSchema.index({ user_id: 1, module_id: 1 });
+
 export default mongoose.model<IUserSubscription>('UserSubscription', UserSubscriptionSchema);

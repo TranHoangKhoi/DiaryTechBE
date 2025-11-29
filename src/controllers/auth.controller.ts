@@ -1,7 +1,7 @@
 import User from '../models/User.model';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { Request, Response } from 'express';
 import UserSubscriptionModel from '~/models/UserSubscription.model';
 
@@ -129,6 +129,51 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
     const userWithSubs = {
       ...user.toObject(),
       subscriptions // thêm danh sách thuê bao vào user
+    };
+
+    res.json({
+      success: true,
+      message: 'Lấy thông tin người dùng thành công.',
+      data: {
+        user: userWithSubs
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const getUserProfileByAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.params.userId;
+
+    if (!userId) {
+      res.status(400).json({ success: false, message: 'Thiếu userId' });
+      return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      res.status(400).json({ success: false, message: 'userId không hợp lệ' });
+      return;
+    }
+
+    // Lấy thông tin user theo userId truyền xuống
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy user' });
+      return;
+    }
+
+    // Lấy danh sách gói thuê bao của user
+    const subscriptions = await UserSubscriptionModel.find({ user_id: user._id })
+      .populate('module_id', 'key name description')
+      .populate('package_id', 'name max_sub_accounts price_per_month duration_in_days');
+
+    // Gộp lại đúng format như API gốc
+    const userWithSubs = {
+      ...user.toObject(),
+      subscriptions
     };
 
     res.json({

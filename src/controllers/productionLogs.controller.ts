@@ -35,7 +35,7 @@ export type ProductionLogInput = z.infer<typeof productionLogSchema>;
 // Hàm tạo mới ProductionLog
 export const createProductionLog = async (req: Request, res: Response) => {
   try {
-    const { farm_id, activity_id, data, chemical_usages, notes, date } = req.body;
+    const { farm_id, activity_id, data, chemical_usages, notes, date, book_id } = req.body;
 
     const userId = req.user?.id;
     const newProductionLog = new ProductionLogsModel({
@@ -45,6 +45,7 @@ export const createProductionLog = async (req: Request, res: Response) => {
       chemical_usages,
       notes,
       date,
+      book_id,
       created_by: userId
     });
 
@@ -69,20 +70,30 @@ export const createProductionLog = async (req: Request, res: Response) => {
 export const getProductionLogsByFarm = async (req: Request, res: Response) => {
   try {
     const { farm_id } = req.params;
+    const { book_id } = req.query; // <-- nhận book_id từ query
 
     if (!farm_id) {
       res.status(400).json({
         success: false,
         message: 'Thiếu farm_id'
       });
+      return;
     }
 
-    const logs = await ProductionLogsModel.find({ farm_id })
-      .populate('farm_id', 'farm_name avatar location') // lấy thông tin farm cơ bản
-      .populate('activity_id', 'activity_name') // lấy tên activity
-      .populate('created_by', 'name avatar') // lấy thông tin user tạo log
-      // .populate('chemical_usages.chemical_id', 'name unit') // lấy tên + đơn vị hóa chất
-      .sort({ created_at: -1 }); // sắp xếp mới nhất trước
+    // Tạo object filter linh hoạt
+    const filter: any = { farm_id };
+
+    // Nếu có book_id thì thêm vào filter
+    if (book_id) {
+      filter.book_id = book_id;
+    }
+
+    const logs = await ProductionLogsModel.find(filter)
+      .populate('farm_id', 'farm_name avatar location')
+      .populate('activity_id', 'activity_name')
+      .populate('created_by', 'name avatar')
+      .populate('book_id', 'name') // <-- lấy tên cuốn nhật ký luôn
+      .sort({ created_at: -1 });
 
     res.status(200).json({
       success: true,
@@ -133,22 +144,25 @@ export const getProductionLogsByID = async (req: Request, res: Response): Promis
       return;
     }
 
-    // Truy vấn và populate cả activity và farm type
     const productionLog = await ProductionLogsModel.findById(id)
       .populate({
         path: 'activity_id',
         populate: {
-          path: 'farm_type_id', // populate tiếp farm_type_id trong activity
+          path: 'farm_type_id',
           model: 'Farmtype'
         }
       })
       .populate({
-        path: 'farm_id', // populate thêm farm nếu cần
+        path: 'farm_id',
         model: 'Farm'
       })
       .populate({
-        path: 'created_by', // populate thêm user nếu muốn
+        path: 'created_by',
         select: 'name phone avatar'
+      })
+      .populate({
+        path: 'book_id',
+        model: 'ProductionBook'
       });
 
     if (!productionLog) {

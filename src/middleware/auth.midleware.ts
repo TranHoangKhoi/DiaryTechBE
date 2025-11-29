@@ -29,6 +29,8 @@ export const checkRole =
 
     // Nếu không phải role yêu cầu thì cấm
     if (req.user?.role !== role) {
+      console.log('req.user?.role: ', req.user?.role);
+
       return res.status(403).json({ message: 'Forbidden' });
     }
 

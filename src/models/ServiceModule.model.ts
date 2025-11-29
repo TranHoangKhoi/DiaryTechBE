@@ -16,4 +16,7 @@ const ServiceModuleSchema = new mongoose.Schema({
   is_active: { type: Boolean, default: true }
 });
 
+ServiceModuleSchema.index({ key: 1 }, { unique: true });
+ServiceModuleSchema.index({ is_active: 1 });
+
 export default mongoose.model<IServiceModule>('ServiceModule', ServiceModuleSchema);

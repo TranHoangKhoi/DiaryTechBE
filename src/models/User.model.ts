@@ -51,4 +51,10 @@ UserSchema.methods.comparePassword = async function (password: string): Promise<
   return await bcrypt.compare(password, this.password);
 };
 
+UserSchema.index({ phone: 1 }, { unique: true }); // tra cứu nhanh, đảm bảo duy nhất
+UserSchema.index({ owner_id: 1 }); // khi load sub-account theo chủ
+UserSchema.index({ role: 1 });
+UserSchema.index({ status: 1 });
+UserSchema.index({ created_at: -1 }); // sort nhanh theo ngày tạo
+
 export default mongoose.model<IUser>('User', UserSchema);

@@ -26,11 +26,9 @@ export const streamUpload = (buffer: Buffer, type: 'image' | 'video' = 'image', 
 
 export const createFarm = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { farm_name, location, farm_type_id, description, password, name, phone } = req.body;
+    const { farm_name, location, farm_type_id, description, password, name, phone, area } = req.body;
     let { geo_location, province, ward } = req.body;
     const ownerId = req.user?.id;
-
-    console.log('Data:', req.body);
 
     if (!ownerId) {
       res.status(401).json({ message: 'User không hợp lệ' });
@@ -86,6 +84,7 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
       farm_type_id,
       geo_location,
       description,
+      area,
       avatar: imageRes.secure_url,
       province,
       ward
@@ -144,6 +143,31 @@ export const getFarmsByUserId = async (req: Request, res: Response) => {
     res.json(farm);
   } catch (error) {
     console.error('Error fetching farm:', error);
+    res.status(500).json({ message: 'Lỗi server', error });
+  }
+};
+
+export const getFarmsByUserIdFormAdmin = async (req: Request, res: Response) => {
+  try {
+    // Nếu muốn lấy userId từ query hoặc params, có thể sửa dòng dưới
+    const userId = req.params.userId;
+
+    if (!userId) {
+      res.status(400).json({ message: 'Thiếu userId' });
+      return;
+    }
+
+    // Tìm tất cả farm có user_id trùng với userId
+    const farms = await FarmModel.findOne({ user_id: userId })
+      .populate('owner_id', 'name avatar')
+      .populate('farm_type_id', 'type_name');
+
+    res.status(200).json({
+      success: true,
+      data: farms
+    });
+  } catch (error) {
+    console.error('Error fetching farms:', error);
     res.status(500).json({ message: 'Lỗi server', error });
   }
 };

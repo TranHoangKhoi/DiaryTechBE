@@ -34,6 +34,7 @@ const upload = multer({
   storage: storage, // Dùng storage đã định nghĩa
   limits: { fileSize: 5 * 1024 * 1024 } // Giới hạn kích thước file (5MB)
 });
+
 export const ensureUploadsDirExists = () => {
   const uploadPath = path.join(__dirname, '../../uploads'); // Điều chỉnh đường dẫn đến đúng thư mục
   if (!fs.existsSync(uploadPath)) {

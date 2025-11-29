@@ -3,6 +3,7 @@ import mongoose, { Document } from 'mongoose';
 interface IProductionLog extends Document {
   farm_id: string;
   activity_id: string;
+  book_id: string;
   date: Date;
   data: []; // dữ liệu form động
   // chemical_usages: [
@@ -23,6 +24,7 @@ interface IProductionLog extends Document {
 const ProductionLogSchema = new mongoose.Schema({
   farm_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Farm', required: true },
   activity_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Activities', required: true },
+  book_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductionBook', required: true },
   date: { type: Date, required: true },
   data: { type: Object, default: {} }, // dữ liệu form động
   // chemical_usages: [
@@ -39,5 +41,11 @@ const ProductionLogSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
+
+ProductionLogSchema.index({ farm_id: 1, date: -1 });
+ProductionLogSchema.index({ book_id: 1, date: -1 });
+ProductionLogSchema.index({ activity_id: 1 });
+ProductionLogSchema.index({ created_by: 1 });
+ProductionLogSchema.index({ created_at: -1 });
 
 export default mongoose.model<IProductionLog>('ProductionLog', ProductionLogSchema);
