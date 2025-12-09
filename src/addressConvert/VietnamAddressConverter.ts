@@ -228,7 +228,6 @@ export class VietnamAddressConverter {
     }
 
     const validAddress: ValidAddress = fullAddress as ValidAddress;
-    console.log('validAddress: ', validAddress);
 
     // Tìm mapping với optimized search
     const mappings = this.dataLoader.findMappingByOldAddress(
@@ -236,8 +235,6 @@ export class VietnamAddressConverter {
       validAddress.district,
       validAddress.province
     );
-
-    console.log('mappings: ', mappings);
 
     const relevantMappings = mappings.filter((m) => {
       const wardMatch = validAddress.ward
@@ -262,8 +259,6 @@ export class VietnamAddressConverter {
 
       return wardMatch && districtMatch && provinceMatch;
     });
-
-    console.log('relevantMappings: ', relevantMappings);
 
     let result: ConversionResult;
 
