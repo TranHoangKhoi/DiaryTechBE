@@ -1,5 +1,5 @@
 import { Province, Ward, WardMapping, DatabaseExport } from './types';
-import { normalizeText } from './utils';
+import { normalizeText, pushToMap, removeAdministrativePrefix } from './utils';
 import VietNamAddressDatabase from './geojson/vietnameConver.json';
 
 /**
@@ -143,28 +143,23 @@ export class OptimizedDataLoader {
 
     // Index mappings by combined keys
     for (const mapping of this.wardMappings) {
-      const keys = [];
+      const oldProvince = removeAdministrativePrefix(mapping.old_province_name);
+      const oldDistrict = removeAdministrativePrefix(mapping.old_district_name);
+      const oldWard = removeAdministrativePrefix(mapping.old_ward_name);
 
-      if (mapping.old_province_name) {
-        const normalizedProvince = normalizeText(mapping.old_province_name);
-        keys.push(`province_${normalizedProvince}`);
+      if (oldProvince) {
+        const keyProvince = `province_${oldProvince}`;
+        pushToMap(this.mappingIndex, keyProvince, mapping);
 
-        if (mapping.old_district_name) {
-          const normalizedDistrict = normalizeText(mapping.old_district_name);
-          keys.push(`district_${normalizedProvince}_${normalizedDistrict}`);
+        if (oldDistrict) {
+          const keyDistrict = `district_${oldProvince}_${oldDistrict}`;
+          pushToMap(this.mappingIndex, keyDistrict, mapping);
 
-          if (mapping.old_ward_name) {
-            const normalizedWard = normalizeText(mapping.old_ward_name);
-            keys.push(`ward_${normalizedProvince}_${normalizedDistrict}_${normalizedWard}`);
+          if (oldWard) {
+            const keyWard = `ward_${oldProvince}_${oldDistrict}_${oldWard}`;
+            pushToMap(this.mappingIndex, keyWard, mapping);
           }
         }
-      }
-
-      for (const key of keys) {
-        if (!this.mappingIndex.has(key)) {
-          this.mappingIndex.set(key, []);
-        }
-        this.mappingIndex.get(key)!.push(mapping);
       }
     }
 
@@ -234,34 +229,27 @@ export class OptimizedDataLoader {
   findMappingByOldAddress(wardName?: string, districtName?: string, provinceName?: string): WardMapping[] {
     if (!provinceName) return [];
 
-    const normalizedProvince = normalizeText(provinceName);
+    const normalizedProvince = removeAdministrativePrefix(provinceName);
+    const normalizedDistrict = removeAdministrativePrefix(districtName);
+    const normalizedWard = removeAdministrativePrefix(wardName);
 
-    // Tìm theo thứ tự specificity: ward -> district -> province
-    if (wardName && districtName) {
-      const normalizedWard = normalizeText(wardName);
-      const normalizedDistrict = normalizeText(districtName);
+    // 1) match đầy đủ ward + district + province
+    if (normalizedWard && normalizedDistrict) {
       const key = `ward_${normalizedProvince}_${normalizedDistrict}_${normalizedWard}`;
-
       const mappings = this.mappingIndex.get(key);
-      if (mappings && mappings.length > 0) {
-        return mappings;
-      }
+      if (mappings?.length) return mappings;
     }
 
-    if (districtName) {
-      const normalizedDistrict = normalizeText(districtName);
+    // 2) chỉ district + province
+    if (normalizedDistrict) {
       const key = `district_${normalizedProvince}_${normalizedDistrict}`;
-
       const mappings = this.mappingIndex.get(key);
-      if (mappings && mappings.length > 0) {
-        return mappings;
-      }
+      if (mappings?.length) return mappings;
     }
 
-    // Fallback: chỉ theo province
+    // 3) fallback: chỉ province
     const key = `province_${normalizedProvince}`;
-    const mappings = this.mappingIndex.get(key);
-    return mappings || [];
+    return this.mappingIndex.get(key) || [];
   }
 
   // Getter methods (unchanged)

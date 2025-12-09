@@ -21,7 +21,6 @@ const ActivitySchema = new mongoose.Schema(
     activity_name: { type: String, required: true },
     image: {
       type: String,
-      required: true,
       default: 'https://res.cloudinary.com/delix6nht/image/upload/v1760068625/3_xs0l5w.png'
     },
     description: { type: String },

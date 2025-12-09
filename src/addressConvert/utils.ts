@@ -152,3 +152,28 @@ export function parseAddress(address: string): {
 
   return result;
 }
+
+export const removeAdminPrefix = (text: string) => {
+  return text.replace(/tinh|thanh pho|tp|huyen|quan|thi xa|xa|phuong|thi tran/gi, '').trim();
+};
+
+export function removeAdministrativePrefix(value?: string | null): string {
+  if (!value) return '';
+
+  const noPrefix = value
+    .toLowerCase()
+    .replace(/^(tinh|tỉnh)\s+/, '')
+    .replace(/^(thanh pho|tp|t\.p)\s+/, '')
+    .replace(/^(huyen|huyện)\s+/, '')
+    .replace(/^(quan|quận)\s+/, '')
+    .replace(/^(thi xa|thị xã)\s+/, '')
+    .replace(/^(xa|xã)\s+/, '')
+    .replace(/^(phuong|phường)\s+/, '')
+    .replace(/^(thi tran|thị trấn)\s+/, '');
+  return normalizeText(noPrefix);
+}
+
+export function pushToMap(map: any, key: any, value: any) {
+  if (!map.has(key)) map.set(key, []);
+  map.get(key)!.push(value);
+}

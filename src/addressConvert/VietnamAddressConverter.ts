@@ -228,6 +228,7 @@ export class VietnamAddressConverter {
     }
 
     const validAddress: ValidAddress = fullAddress as ValidAddress;
+    console.log('validAddress: ', validAddress);
 
     // Tìm mapping với optimized search
     const mappings = this.dataLoader.findMappingByOldAddress(
@@ -236,18 +237,33 @@ export class VietnamAddressConverter {
       validAddress.province
     );
 
+    console.log('mappings: ', mappings);
+
     const relevantMappings = mappings.filter((m) => {
       const wardMatch = validAddress.ward
-        ? calculateSimilarity(normalizeText(m.old_ward_name || ''), normalizeText(validAddress.ward)) > 0.8
+        ? calculateSimilarity(
+            normalizeText(removeAdministrativeTypes(m.old_ward_name || '')),
+            normalizeText(removeAdministrativeTypes(validAddress.ward || ''))
+          ) > 0.8
         : true;
+
       const districtMatch = validAddress.district
-        ? calculateSimilarity(normalizeText(m.old_district_name || ''), normalizeText(validAddress.district)) > 0.8
+        ? calculateSimilarity(
+            normalizeText(removeAdministrativeTypes(m.old_district_name || '')),
+            normalizeText(removeAdministrativeTypes(validAddress.district || ''))
+          ) > 0.8
         : true;
+
       const provinceMatch =
-        calculateSimilarity(normalizeText(m.old_province_name || ''), normalizeText(validAddress.province)) > 0.9;
+        calculateSimilarity(
+          normalizeText(removeAdministrativeTypes(m.old_province_name || '')),
+          normalizeText(removeAdministrativeTypes(validAddress.province || ''))
+        ) > 0.85;
 
       return wardMatch && districtMatch && provinceMatch;
     });
+
+    console.log('relevantMappings: ', relevantMappings);
 
     let result: ConversionResult;
 
@@ -276,10 +292,31 @@ export class VietnamAddressConverter {
       const provinceExists = this.findNewProvinceCached(validAddress.province);
 
       if (provinceExists) {
+        // result = {
+        //   success: true,
+        //   originalAddress: fullAddress,
+        //   convertedAddress: validAddress,
+        //   mappingInfo: { mappingType: 'unchanged' },
+        //   message: 'Địa chỉ đã đúng chuẩn, không cần chuyển đổi (địa chỉ mới)'
+        // };
+        const normalizedWard = validAddress.ward;
+
+        // street phải gộp với ward → format chuẩn
+        const correctedStreet = validAddress.ward
+          ? `${validAddress.street}, ${validAddress.ward}`
+          : validAddress.street;
+
+        const convertedAddress = {
+          province: validAddress.province,
+          ward: validAddress.district,
+          // ward: normalizedWard,
+          street: correctedStreet
+        };
+
         result = {
           success: true,
           originalAddress: fullAddress,
-          convertedAddress: validAddress,
+          convertedAddress,
           mappingInfo: { mappingType: 'unchanged' },
           message: 'Địa chỉ đã đúng chuẩn, không cần chuyển đổi (địa chỉ mới)'
         };
