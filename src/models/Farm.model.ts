@@ -28,7 +28,12 @@ export interface IFarm extends Document {
   location: string;
   farm_type_id: mongoose.Types.ObjectId;
   geo_location?: string;
-  area: string;
+  polygon?: {
+    type: 'Polygon';
+    coordinates: number[][][];
+  };
+  area: number;
+  unit: 'm2' | 'ha';
   avatar: string;
   soil_type?: string;
   farm_status: 'active' | 'inactive' | 'under_maintenance';
@@ -80,8 +85,18 @@ const FarmSchema = new mongoose.Schema<IFarm>({
     ref: 'Farmtype',
     required: true
   },
+  polygon: {
+    type: {
+      type: String,
+      enum: ['Polygon']
+    },
+    coordinates: {
+      type: [[[Number]]]
+    }
+  },
   geo_location: { type: [Number] },
-  area: { type: String },
+  area: { type: Number, default: 0 },
+  unit: { type: String, default: 'ha' },
   soil_type: { type: String },
   farm_status: {
     type: String,
@@ -102,6 +117,7 @@ FarmSchema.index({ farm_type_id: 1 });
 FarmSchema.index({ created_at: -1 });
 FarmSchema.index({ farm_status: 1 });
 FarmSchema.index({ geo_location: '2dsphere' }); // cho query vị trí (map)
+FarmSchema.index({ polygon: '2dsphere' });
 FarmSchema.index({ owner_id: 1, farm_type_id: 1 });
 
 export default mongoose.model<IFarm>('Farm', FarmSchema);

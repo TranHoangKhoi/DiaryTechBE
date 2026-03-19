@@ -7,7 +7,7 @@ interface AuthRequest extends Request {
 
 export const auth = (req: AuthRequest, res: Response, next: NextFunction): any => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ message: 'No token provided' });
+  if (!token) return res.status(401).json({ message: 'Bạn chưa đăng nhập, hoặc không đủ quyền thực hiện !' });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string; role: string };

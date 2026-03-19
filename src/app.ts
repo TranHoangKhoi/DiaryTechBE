@@ -17,6 +17,7 @@ import subscriptionPackageRoutes from './routes/subscriptionPackage.route';
 import userSubscriptionRoutes from './routes/userSubscription.route';
 import farmtypeConfigRoutes from './routes/farmtypeConfig.route';
 import mapRoutes from './routes/map.route';
+import cropCategoriesRoutes from './routes/cropCategories.route';
 
 const app: Express = express();
 app.set('trust proxy', 1);
@@ -50,5 +51,6 @@ app.use('/api/subscriptionPackage', subscriptionPackageRoutes);
 app.use('/api/userSubscription', userSubscriptionRoutes);
 app.use('/api/farmtypeConfig', farmtypeConfigRoutes);
 app.use('/api/map', mapRoutes);
+app.use('/api/crop', cropCategoriesRoutes);
 
 export default app;

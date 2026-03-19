@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cloudinary from '~/config/cloudinary';
+import { Crop } from '~/models/CropCategories';
 import FarmModel from '~/models/Farm.model';
+import { FarmCrop } from '~/models/FarmCrop.model';
 import FarmtypeModel from '~/models/Farmtype.model';
 import UserModel from '~/models/User.model';
 
@@ -26,12 +28,43 @@ export const streamUpload = (buffer: Buffer, type: 'image' | 'video' = 'image', 
 
 export const createFarm = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { farm_name, location, farm_type_id, description, password, name, phone, area } = req.body;
+    const { farm_name, location, farm_type_id, description, password, name, phone, area, polygon, unit, crop_id } =
+      req.body;
     let { geo_location, province, ward } = req.body;
     const ownerId = req.user?.id;
 
+    let polygonData = polygon;
+
+    if (typeof polygonData === 'string') {
+      polygonData = JSON.parse(polygonData);
+    }
+
+    // nếu là FeatureCollection
+    if (polygonData?.type === 'FeatureCollection') {
+      polygonData = polygonData.features?.[0]?.geometry;
+    }
+
+    if (!polygonData || polygonData.type !== 'Polygon') {
+      res.status(400).json({ message: 'Polygon không hợp lệ' });
+      return;
+    }
+
     if (!ownerId) {
       res.status(401).json({ message: 'User không hợp lệ' });
+      return;
+    }
+
+    // sau khi tạo newFarm
+    const crop = await Crop.findById(crop_id);
+
+    if (!crop) {
+      res.status(400).json({ message: 'Crop không tồn tại' });
+      return;
+    }
+
+    // validate farm_type
+    if (crop.farm_type_id.toString() !== farm_type_id.toString()) {
+      res.status(400).json({ message: 'Crop không hợp lệ với farm type' });
       return;
     }
 
@@ -44,8 +77,26 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
 
     const files = req.files as any;
     const imageFile = files?.['image']?.[0];
-    if (!farm_name || !password || !imageFile) {
+    let avatarUrl: string | undefined;
+
+    if (!farm_name || !password) {
       res.status(400).json({ error: 'Thiếu dữ liệu bắt buộc' });
+      return;
+    }
+
+    // trường hợp FE gửi link
+    if (req.body.image && typeof req.body.image === 'string') {
+      avatarUrl = req.body.image;
+    }
+
+    // trường hợp gửi file
+    if (imageFile) {
+      const imageRes = await streamUpload(imageFile.buffer, 'image', 'Farms');
+      avatarUrl = imageRes.secure_url;
+    }
+
+    if (!avatarUrl) {
+      res.status(400).json({ error: 'Thiếu ảnh' });
       return;
     }
 
@@ -62,9 +113,6 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
       ward = JSON.parse(ward);
     }
 
-    // Upload ảnh
-    const imageRes = await streamUpload(imageFile.buffer, 'image', 'Farms');
-
     // Tạo subUser
     const subUser = await UserModel.create({
       phone,
@@ -72,7 +120,7 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
       name,
       role: 'sub_account',
       owner_id: ownerId,
-      avatar: imageRes.secure_url
+      avatar: avatarUrl
     });
 
     // Tạo farm
@@ -85,9 +133,19 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
       geo_location,
       description,
       area,
-      avatar: imageRes.secure_url,
+      polygon: polygonData,
+      avatar: avatarUrl,
       province,
+      unit,
       ward
+    });
+
+    // tạo farmCrop
+    await FarmCrop.create({
+      farm_id: newFarm._id,
+      crop_id,
+      area: area || 0,
+      is_primary: true
     });
 
     res.status(201).json({
