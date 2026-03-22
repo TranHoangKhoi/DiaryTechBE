@@ -96,8 +96,8 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
     }
 
     if (!avatarUrl) {
-      res.status(400).json({ error: 'Thiếu ảnh' });
-      return;
+      // res.status(400).json({ error: 'Thiếu ảnh' });
+      avatarUrl = '';
     }
 
     // Xử lý dữ liệu
@@ -113,45 +113,75 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
       ward = JSON.parse(ward);
     }
 
-    // Tạo subUser
-    const subUser = await UserModel.create({
-      phone,
-      password,
-      name,
-      role: 'sub_account',
-      owner_id: ownerId,
-      avatar: avatarUrl
-    });
+    // Bắt đầu transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Tạo farm
-    const newFarm = await FarmModel.create({
-      owner_id: ownerId,
-      user_id: subUser._id,
-      farm_name,
-      location,
-      farm_type_id,
-      geo_location,
-      description,
-      area,
-      polygon: polygonData,
-      avatar: avatarUrl,
-      province,
-      unit,
-      ward
-    });
+    try {
+      // Tạo subUser
+      const [subUser] = await UserModel.create(
+        [
+          {
+            phone,
+            password,
+            name,
+            role: 'sub_account',
+            owner_id: ownerId,
+            avatar: avatarUrl
+          }
+        ],
+        { session }
+      );
 
-    // tạo farmCrop
-    await FarmCrop.create({
-      farm_id: newFarm._id,
-      crop_id,
-      area: area || 0,
-      is_primary: true
-    });
+      // Tạo farm
+      const [newFarm] = await FarmModel.create(
+        [
+          {
+            owner_id: ownerId,
+            user_id: subUser._id,
+            farm_name,
+            location,
+            farm_type_id,
+            geo_location,
+            description,
+            area,
+            polygon: polygonData,
+            avatar: avatarUrl,
+            province,
+            unit,
+            ward
+          }
+        ],
+        { session }
+      );
 
-    res.status(201).json({
-      message: 'Tạo Farm thành công',
-      farm: newFarm
-    });
+      // tạo farmCrop
+      await FarmCrop.create(
+        [
+          {
+            farm_id: newFarm._id,
+            crop_id,
+            area: area || 0,
+            is_primary: true
+          }
+        ],
+        { session }
+      );
+
+      // Xác nhận các thay đổi
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(201).json({
+        message: 'Tạo Farm thành công',
+        farm: newFarm
+      });
+    } catch (error) {
+      // Rollback nếu có lỗi
+      await session.abortTransaction();
+      session.endSession();
+      throw error; // Ném lỗi ra catch bên ngoài
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({
