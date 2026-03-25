@@ -19,6 +19,22 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction): any =
   }
 };
 
+export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction): any => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string; role: string };
+    req.user = decoded;
+    next();
+  } catch (error) {
+    // If token is invalid, we still allow the request but without req.user
+    next();
+  }
+};
+
 export const checkRole =
   (role: string) =>
   (req: AuthRequest, res: Response, next: NextFunction): any => {

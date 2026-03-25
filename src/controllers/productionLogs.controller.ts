@@ -257,28 +257,34 @@ export const getProductionLogsByActivityAndFarm = async (req: Request, res: Resp
 export const getRecentProductionLogs = async (req: Request, res: Response) => {
   try {
     const { farm_id, limit, exclude_log_id } = req.query;
-
-    if (!farm_id) {
-      res.status(400).json({
-        success: false,
-        message: 'Thiếu farm_id'
-      });
-      return;
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
-      res.status(400).json({
-        success: false,
-        message: 'farm_id không hợp lệ'
-      });
-      return;
-    }
-
     const limitNumber = Math.max(parseInt(limit as string) || 5, 1);
+    const query: any = {};
 
-    const query: any = {
-      farm_id: new mongoose.Types.ObjectId(farm_id as string)
-    };
+    if (farm_id) {
+      if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'farm_id không hợp lệ'
+        });
+        return;
+      }
+      query.farm_id = new mongoose.Types.ObjectId(farm_id as string);
+    } else if (req.user?.role === 'owner') {
+      // Nếu là owner và không truyền farm_id, lấy log của tất cả farm thuộc owner này
+      const farms = await mongoose.model('Farm').find({ owner_id: req.user.id }).select('_id');
+      const farmIds = farms.map((f) => f._id);
+      if (farmIds.length === 0) {
+        res.status(200).json({ success: true, data: [] });
+        return;
+      }
+      query.farm_id = { $in: farmIds };
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Thiếu farm_id hoặc bạn không phải là owner'
+      });
+      return;
+    }
 
     // nếu có log cần loại trừ
     if (exclude_log_id && mongoose.Types.ObjectId.isValid(exclude_log_id as string)) {
@@ -288,7 +294,8 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
     }
 
     const logs = await ProductionLogsModel.find(query)
-      .populate('activity_id', 'activity_name')
+      .populate('farm_id', 'farm_name avatar province ward location')
+      .populate('activity_id', 'activity_name image')
       .populate('created_by', 'name avatar')
       .populate('book_id', 'name')
       .sort({ created_at: -1 })

@@ -30,7 +30,7 @@ import mongoose from 'mongoose';
 
 export const getAllFarmsMap = async (req: Request, res: Response) => {
   try {
-    const { crop_id, province_code } = req.query;
+    const { crop_id, province_code, owner_id } = req.query;
 
     const match: any = {
       farm_status: 'active'
@@ -38,6 +38,12 @@ export const getAllFarmsMap = async (req: Request, res: Response) => {
 
     if (province_code) {
       match['province.province_code'] = province_code;
+    }
+
+    // Lọc theo owner_id nếu có trong query hoặc từ token (nếu là owner)
+    const effectiveOwnerId = owner_id || (req.user?.role === 'owner' ? req.user.id : null);
+    if (effectiveOwnerId && mongoose.Types.ObjectId.isValid(effectiveOwnerId as string)) {
+      match.owner_id = new mongoose.Types.ObjectId(effectiveOwnerId as string);
     }
 
     const farms = await FarmModel.aggregate([

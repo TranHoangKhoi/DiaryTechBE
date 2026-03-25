@@ -16,7 +16,7 @@ const router = express.Router();
 router.post('/', auth, createProductionLog);
 router.get('/', getProductionLogsByActivityAndFarm);
 router.get('/farm/:farm_id', auth, getProductionLogsByFarm);
-router.get('/recent', getRecentProductionLogs);
+router.get('/recent', auth, getRecentProductionLogs);
 router.get('/owner', auth, getOwnerProductionLogs);
 router.get('/owner/logs/recent', auth, getRecentActivities);
 router.get('/:id', getProductionLogsByID);
