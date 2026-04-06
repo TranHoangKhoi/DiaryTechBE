@@ -1,6 +1,7 @@
 # Tai lieu Database va Model - DiaryTechBE
 
 ## 1. Muc dich tai lieu
+
 Tai lieu nay tong hop toan bo model hien co trong `src/models` de ban co the nhanh chong nam:
 
 - Moi model dung de lam gi
@@ -17,12 +18,15 @@ Luu y:
 - Mot so model co dau hieu la model cu/du phong chua duoc dung trong route-controller hien tai. Phan do se duoc ghi ro trong muc ghi chu.
 
 ## 2. Tong quan nhom du lieu
+
 He thong hien tai co the chia thanh 5 nhom du lieu lon:
 
 1. Nguoi dung va phan quyen
+
    - `User`
 
 2. Nong trai va cau hinh nong trai
+
    - `Farmtype`
    - `FarmTypeConfig`
    - `Farm`
@@ -31,12 +35,14 @@ He thong hien tai co the chia thanh 5 nhom du lieu lon:
    - `FarmMedia`
 
 3. Hoat dong va nhat ky san xuat
+
    - `Activities`
    - `ProductionBook`
    - `ProductionLog`
    - `ProductionReport`
 
 4. Subscription / SaaS module
+
    - `ServiceModule`
    - `SubscriptionPackage`
    - `UserSubscription`
@@ -81,9 +87,11 @@ erDiagram
 ## 4. Chi tiet tung model
 
 ### 4.1. `User`
+
 File: `src/models/User.model.ts`
 
 #### Muc dich
+
 Model trung tam cho tai khoan he thong. Model nay dung cho tat ca vai tro:
 
 - `superadmin`
@@ -99,26 +107,26 @@ Trong nghiep vu hien tai:
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `phone` | `String` | Co | - | So dien thoai dang nhap, unique |
-| `password` | `String` | Co | - | Duoc hash bang `bcrypt` truoc khi save |
-| `name` | `String` | Co | - | Ten nguoi dung |
-| `address` | `String` | Khong | - | Dia chi |
-| `des` | `String` | Khong | `''` | Mo ta ngan |
-| `avatar` | `String` | Khong | `''` | Anh dai dien |
-| `gender` | `Number` | Khong | `1` | Code gioi tinh, comment trong code ghi `1 = Female`, khac `1` thi xem nhu Male |
-| `role` | `String` | Co | `'owner'` | Enum: `superadmin`, `admin`, `owner`, `sub_account` |
-| `owner_id` | `ObjectId` | Khong | - | Ref `User`, dung cho `sub_account` |
-| `status` | `String` | Khong | `'active'` | Enum: `active`, `inactive`, `suspended` |
-| `last_login` | `Date` | Khong | `Date.now` | Lan dang nhap gan nhat |
-| `created_at` | `Date` | Khong | `Date.now` | Ngay tao |
-| `updated_at` | `Date` | Khong | `Date.now` | Ngay cap nhat |
+| Truong       | Kieu       | Bat buoc | Mac dinh   | Ghi chu                                                                        |
+| ------------ | ---------- | -------: | ---------- | ------------------------------------------------------------------------------ |
+| `phone`      | `String`   |       Co | -          | So dien thoai dang nhap, unique                                                |
+| `password`   | `String`   |       Co | -          | Duoc hash bang `bcrypt` truoc khi save                                         |
+| `name`       | `String`   |       Co | -          | Ten nguoi dung                                                                 |
+| `address`    | `String`   |    Khong | -          | Dia chi                                                                        |
+| `des`        | `String`   |    Khong | `''`       | Mo ta ngan                                                                     |
+| `avatar`     | `String`   |    Khong | `''`       | Anh dai dien                                                                   |
+| `gender`     | `Number`   |    Khong | `1`        | Code gioi tinh, comment trong code ghi `1 = Female`, khac `1` thi xem nhu Male |
+| `role`       | `String`   |       Co | `'owner'`  | Enum: `superadmin`, `admin`, `owner`, `sub_account`                            |
+| `owner_id`   | `ObjectId` |    Khong | -          | Ref `User`, dung cho `sub_account`                                             |
+| `status`     | `String`   |    Khong | `'active'` | Enum: `active`, `inactive`, `suspended`                                        |
+| `last_login` | `Date`     |    Khong | `Date.now` | Lan dang nhap gan nhat                                                         |
+| `created_at` | `Date`     |    Khong | `Date.now` | Ngay tao                                                                       |
+| `updated_at` | `Date`     |    Khong | `Date.now` | Ngay cap nhat                                                                  |
 
 #### Method
 
-| Method | Muc dich |
-|---|---|
+| Method                      | Muc dich                                        |
+| --------------------------- | ----------------------------------------------- |
 | `comparePassword(password)` | So sanh password plaintext voi password da hash |
 
 #### Middleware / Logic dac biet
@@ -127,13 +135,13 @@ Trong nghiep vu hien tai:
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
+| Index                 | Muc dich                                |
+| --------------------- | --------------------------------------- |
 | `{ phone: 1 }` unique | Bao dam duy nhat va tim dang nhap nhanh |
-| `{ owner_id: 1 }` | Tim danh sach sub-account theo owner |
-| `{ role: 1 }` | Loc theo vai tro |
-| `{ status: 1 }` | Loc theo trang thai |
-| `{ created_at: -1 }` | Sap xep moi nhat truoc |
+| `{ owner_id: 1 }`     | Tim danh sach sub-account theo owner    |
+| `{ role: 1 }`         | Loc theo vai tro                        |
+| `{ status: 1 }`       | Loc theo trang thai                     |
+| `{ created_at: -1 }`  | Sap xep moi nhat truoc                  |
 
 #### Quan he
 
@@ -167,9 +175,11 @@ Trong nghiep vu hien tai:
 ---
 
 ### 4.2. `ServiceModule`
+
 File: `src/models/ServiceModule.model.ts`
 
 #### Muc dich
+
 Danh sach module dich vu co the ban theo kieu SaaS. Vi du:
 
 - `farm_diary`
@@ -180,19 +190,19 @@ No la lop "module goc", sau do moi module co the co nhieu `SubscriptionPackage`.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `key` | `String` | Co | - | Ma module, unique |
-| `name` | `String` | Co | - | Ten hien thi |
-| `description` | `String` | Khong | - | Mo ta module |
-| `is_active` | `Boolean` | Khong | `true` | Bat/tat module |
+| Truong        | Kieu      | Bat buoc | Mac dinh | Ghi chu           |
+| ------------- | --------- | -------: | -------- | ----------------- |
+| `key`         | `String`  |       Co | -        | Ma module, unique |
+| `name`        | `String`  |       Co | -        | Ten hien thi      |
+| `description` | `String`  |    Khong | -        | Mo ta module      |
+| `is_active`   | `Boolean` |    Khong | `true`   | Bat/tat module    |
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ key: 1 }` unique | Dinh danh module |
-| `{ is_active: 1 }` | Loc module dang hoat dong |
+| Index               | Muc dich                  |
+| ------------------- | ------------------------- |
+| `{ key: 1 }` unique | Dinh danh module          |
+| `{ is_active: 1 }`  | Loc module dang hoat dong |
 
 #### Quan he
 
@@ -213,9 +223,11 @@ No la lop "module goc", sau do moi module co the co nhieu `SubscriptionPackage`.
 ---
 
 ### 4.3. `SubscriptionPackage`
+
 File: `src/models/SubscriptionPackage.model.ts`
 
 #### Muc dich
+
 Dinh nghia tung goi cu the ben trong moi `ServiceModule`.
 Vi du cung la module "Nhat ky dien tu" nhung co the co cac goi:
 
@@ -225,23 +237,23 @@ Vi du cung la module "Nhat ky dien tu" nhung co the co cac goi:
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `module_id` | `ObjectId` | Co | - | Ref `ServiceModule` |
-| `name` | `String` | Co | - | Ten goi |
-| `max_sub_accounts` | `Number` | Khong | `1` | So sub-account toi da |
-| `price_per_month` | `Number` | Co | - | Gia theo thang |
-| `duration_in_days` | `Number` | Co | - | So ngay hieu luc |
-| `description` | `String` | Khong | - | Mo ta goi |
+| Truong             | Kieu       | Bat buoc | Mac dinh | Ghi chu               |
+| ------------------ | ---------- | -------: | -------- | --------------------- |
+| `module_id`        | `ObjectId` |       Co | -        | Ref `ServiceModule`   |
+| `name`             | `String`   |       Co | -        | Ten goi               |
+| `max_sub_accounts` | `Number`   |    Khong | `1`      | So sub-account toi da |
+| `price_per_month`  | `Number`   |       Co | -        | Gia theo thang        |
+| `duration_in_days` | `Number`   |       Co | -        | So ngay hieu luc      |
+| `description`      | `String`   |    Khong | -        | Mo ta goi             |
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ module_id: 1 }` | Tim goi theo module |
-| `{ name: 1 }` | Tim theo ten goi |
-| `{ price_per_month: 1 }` | Loc/sap xep gia |
-| `{ duration_in_days: 1 }` | Loc theo chu ky |
+| Index                     | Muc dich            |
+| ------------------------- | ------------------- |
+| `{ module_id: 1 }`        | Tim goi theo module |
+| `{ name: 1 }`             | Tim theo ten goi    |
+| `{ price_per_month: 1 }`  | Loc/sap xep gia     |
+| `{ duration_in_days: 1 }` | Loc theo chu ky     |
 
 #### Quan he
 
@@ -262,34 +274,36 @@ Vi du cung la module "Nhat ky dien tu" nhung co the co cac goi:
 ---
 
 ### 4.4. `UserSubscription`
+
 File: `src/models/UserSubscription.model.ts`
 
 #### Muc dich
+
 Luu thong tin user dang thue goi nao, thuoc module nao, thoi han bao lau va con bao nhieu sub-account duoc phep tao.
 
 Day la model subscription dang duoc su dung thuc te trong login/profile va cap goi cho user.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `user_id` | `ObjectId` | Co | - | Ref `User` |
-| `module_id` | `ObjectId` | Co | - | Ref `ServiceModule` |
-| `package_id` | `ObjectId` | Co | - | Ref `SubscriptionPackage` |
-| `start_date` | `Date` | Khong | `Date.now` | Ngay bat dau |
-| `end_date` | `Date` | Co | - | Ngay het han |
-| `status` | `String` | Khong | `'active'` | Enum: `active`, `expired`, `pending` |
-| `remaining_sub_accounts` | `Number` | Khong | `0` | So sub-account con lai |
+| Truong                   | Kieu       | Bat buoc | Mac dinh   | Ghi chu                              |
+| ------------------------ | ---------- | -------: | ---------- | ------------------------------------ |
+| `user_id`                | `ObjectId` |       Co | -          | Ref `User`                           |
+| `module_id`              | `ObjectId` |       Co | -          | Ref `ServiceModule`                  |
+| `package_id`             | `ObjectId` |       Co | -          | Ref `SubscriptionPackage`            |
+| `start_date`             | `Date`     |    Khong | `Date.now` | Ngay bat dau                         |
+| `end_date`               | `Date`     |       Co | -          | Ngay het han                         |
+| `status`                 | `String`   |    Khong | `'active'` | Enum: `active`, `expired`, `pending` |
+| `remaining_sub_accounts` | `Number`   |    Khong | `0`        | So sub-account con lai               |
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ user_id: 1 }` | Tim subscription theo user |
-| `{ module_id: 1 }` | Tim theo module |
-| `{ package_id: 1 }` | Tim theo package |
-| `{ status: 1 }` | Loc theo trang thai |
-| `{ end_date: -1 }` | Tim goi sap het han |
+| Index                          | Muc dich                          |
+| ------------------------------ | --------------------------------- |
+| `{ user_id: 1 }`               | Tim subscription theo user        |
+| `{ module_id: 1 }`             | Tim theo module                   |
+| `{ package_id: 1 }`            | Tim theo package                  |
+| `{ status: 1 }`                | Loc theo trang thai               |
+| `{ end_date: -1 }`             | Tim goi sap het han               |
 | `{ user_id: 1, module_id: 1 }` | Tim subscription user theo module |
 
 #### Quan he
@@ -319,9 +333,11 @@ Day la model subscription dang duoc su dung thuc te trong login/profile va cap g
 ---
 
 ### 4.5. `PackageSubscription`
+
 File: `src/models/PackageSubscription.model.ts`
 
 #### Muc dich
+
 Co ve la mot model cu hoac model du phong cho bai toan owner mua package. Tuy nhien trong code hien tai:
 
 - Khong thay route/controller nao dang dung model nay
@@ -329,25 +345,25 @@ Co ve la mot model cu hoac model du phong cho bai toan owner mua package. Tuy nh
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `owner_id` | `ObjectId` | Co | - | Ref `User` |
-| `package_id` | `ObjectId` | Co | - | Ref `'Package'`, hien dang lech ten model |
-| `purchase_date` | `Date` | Co | - | Ngay mua |
-| `expiry_date` | `Date` | Co | - | Ngay het han |
-| `status` | `String` | Khong | `'active'` | Enum: `active`, `expired`, `cancelled` |
-| `sub_accounts_allowed` | `Number` | Co | - | So sub-account duoc cap |
-| `sub_accounts_created` | `Number` | Khong | `0` | Da tao bao nhieu sub-account |
-| `created_at` | `Date` | Khong | `Date.now` | Ngay tao |
-| `updated_at` | `Date` | Khong | `Date.now` | Ngay cap nhat |
+| Truong                 | Kieu       | Bat buoc | Mac dinh   | Ghi chu                                   |
+| ---------------------- | ---------- | -------: | ---------- | ----------------------------------------- |
+| `owner_id`             | `ObjectId` |       Co | -          | Ref `User`                                |
+| `package_id`           | `ObjectId` |       Co | -          | Ref `'Package'`, hien dang lech ten model |
+| `purchase_date`        | `Date`     |       Co | -          | Ngay mua                                  |
+| `expiry_date`          | `Date`     |       Co | -          | Ngay het han                              |
+| `status`               | `String`   |    Khong | `'active'` | Enum: `active`, `expired`, `cancelled`    |
+| `sub_accounts_allowed` | `Number`   |       Co | -          | So sub-account duoc cap                   |
+| `sub_accounts_created` | `Number`   |    Khong | `0`        | Da tao bao nhieu sub-account              |
+| `created_at`           | `Date`     |    Khong | `Date.now` | Ngay tao                                  |
+| `updated_at`           | `Date`     |    Khong | `Date.now` | Ngay cap nhat                             |
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ owner_id: 1 }` | Tim goi theo owner |
-| `{ package_id: 1 }` | Tim theo package |
-| `{ status: 1 }` | Loc theo trang thai |
+| Index                 | Muc dich            |
+| --------------------- | ------------------- |
+| `{ owner_id: 1 }`     | Tim goi theo owner  |
+| `{ package_id: 1 }`   | Tim theo package    |
+| `{ status: 1 }`       | Loc theo trang thai |
 | `{ expiry_date: -1 }` | Tim goi sap het han |
 
 #### Quan he
@@ -367,9 +383,11 @@ Neu ban tiep tuc dung `UserSubscription` lam mo hinh subscription chinh, thi can
 ---
 
 ### 4.6. `Farmtype`
+
 File: `src/models/Farmtype.model.ts`
 
 #### Muc dich
+
 Danh muc loai nong trai/loai san xuat. Vi du:
 
 - Trong trot
@@ -380,19 +398,19 @@ Model nay la diem neo cho nhieu model nghiep vu khac.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `type_name` | `String` | Co | - | Ten loai nong trai |
-| `image` | `String` | Co | - | Anh dai dien |
-| `description` | `String` | Khong | - | Mo ta |
-| `created_at` | `Date` | Khong | `Date.now` | Ngay tao |
-| `updated_at` | `Date` | Khong | `Date.now` | Ngay cap nhat |
+| Truong        | Kieu     | Bat buoc | Mac dinh   | Ghi chu            |
+| ------------- | -------- | -------: | ---------- | ------------------ |
+| `type_name`   | `String` |       Co | -          | Ten loai nong trai |
+| `image`       | `String` |       Co | -          | Anh dai dien       |
+| `description` | `String` |    Khong | -          | Mo ta              |
+| `created_at`  | `Date`   |    Khong | `Date.now` | Ngay tao           |
+| `updated_at`  | `Date`   |    Khong | `Date.now` | Ngay cap nhat      |
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ type_name: 1 }` | Tim theo ten |
+| Index                | Muc dich               |
+| -------------------- | ---------------------- |
+| `{ type_name: 1 }`   | Tim theo ten           |
 | `{ created_at: -1 }` | Sap xep moi nhat truoc |
 
 #### Quan he
@@ -411,51 +429,53 @@ Model nay la diem neo cho nhieu model nghiep vu khac.
 ---
 
 ### 4.7. `FarmTypeConfig`
+
 File: `src/models/FarmTypeConfig.model.ts`
 
 #### Muc dich
+
 Luu cau hinh dong cho tung `Farmtype`, phuc vu viec render form va bang du lieu tren frontend.
 
 Model nay giup he thong ho tro nhieu loai nong trai voi cau hinh khac nhau ma khong can hard-code UI.
 
 #### Cau truc chinh
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `farm_type_id` | `ObjectId` | Co | - | Ref `Farmtype`, unique |
-| `title` | `String` | Khong | - | Tieu de cau hinh |
-| `description` | `String` | Khong | - | Mo ta cau hinh |
-| `sections` | `Array<Section>` | Khong | `[]` | Danh sach section/table |
+| Truong         | Kieu             | Bat buoc | Mac dinh | Ghi chu                 |
+| -------------- | ---------------- | -------: | -------- | ----------------------- |
+| `farm_type_id` | `ObjectId`       |       Co | -        | Ref `Farmtype`, unique  |
+| `title`        | `String`         |    Khong | -        | Tieu de cau hinh        |
+| `description`  | `String`         |    Khong | -        | Mo ta cau hinh          |
+| `sections`     | `Array<Section>` |    Khong | `[]`     | Danh sach section/table |
 
 #### `Section`
 
-| Truong | Kieu | Bat buoc | Ghi chu |
-|---|---|---:|---|
-| `key` | `String` | Co | Ma section |
-| `name` | `String` | Co | Ten hien thi |
-| `type` | `String` | Co | Enum: `section`, `table` |
-| `fields` | `Array<Field>` | Khong | Dung cho form thuong |
-| `columns` | `Array<TableColumn>` | Khong | Dung cho table |
+| Truong    | Kieu                 | Bat buoc | Ghi chu                  |
+| --------- | -------------------- | -------: | ------------------------ |
+| `key`     | `String`             |       Co | Ma section               |
+| `name`    | `String`             |       Co | Ten hien thi             |
+| `type`    | `String`             |       Co | Enum: `section`, `table` |
+| `fields`  | `Array<Field>`       |    Khong | Dung cho form thuong     |
+| `columns` | `Array<TableColumn>` |    Khong | Dung cho table           |
 
 #### `Field`
 
-| Truong | Kieu | Bat buoc | Ghi chu |
-|---|---|---:|---|
-| `key` | `String` | Co | Key cua field |
-| `label` | `String` | Co | Ten hien thi |
-| `type` | `String` | Co | Vi du `text`, `number`, `date`, `select` |
-| `required` | `Boolean` | Khong | Mac dinh `false` |
-| `options` | `Array<{label, value}>` | Khong | Dung khi `type = select` |
+| Truong     | Kieu                    | Bat buoc | Ghi chu                                  |
+| ---------- | ----------------------- | -------: | ---------------------------------------- |
+| `key`      | `String`                |       Co | Key cua field                            |
+| `label`    | `String`                |       Co | Ten hien thi                             |
+| `type`     | `String`                |       Co | Vi du `text`, `number`, `date`, `select` |
+| `required` | `Boolean`               |    Khong | Mac dinh `false`                         |
+| `options`  | `Array<{label, value}>` |    Khong | Dung khi `type = select`                 |
 
 #### `TableColumn`
 
-| Truong | Kieu | Bat buoc | Ghi chu |
-|---|---|---:|---|
-| `key` | `String` | Co | Key cot |
-| `label` | `String` | Co | Ten cot |
-| `type` | `String` | Co | Vi du `text`, `number`, `select` |
-| `required` | `Boolean` | Khong | Mac dinh `false` |
-| `options` | `Array<{label, value}>` | Khong | Dung cho cot select |
+| Truong     | Kieu                    | Bat buoc | Ghi chu                          |
+| ---------- | ----------------------- | -------: | -------------------------------- |
+| `key`      | `String`                |       Co | Key cot                          |
+| `label`    | `String`                |       Co | Ten cot                          |
+| `type`     | `String`                |       Co | Vi du `text`, `number`, `select` |
+| `required` | `Boolean`               |    Khong | Mac dinh `false`                 |
+| `options`  | `Array<{label, value}>` |    Khong | Dung cho cot select              |
 
 #### Timestamps
 
@@ -480,9 +500,11 @@ Model nay giup he thong ho tro nhieu loai nong trai voi cau hinh khac nhau ma kh
 ---
 
 ### 4.8. `Crop`
+
 File: `src/models/CropCategories.ts`
 
 #### Muc dich
+
 Danh muc cay trong/vat nuoi/doi tuong san xuat duoc phep gan cho farm. Dung de:
 
 - Gan cay trong chinh cho farm
@@ -491,16 +513,16 @@ Danh muc cay trong/vat nuoi/doi tuong san xuat duoc phep gan cho farm. Dung de:
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `name` | `String` | Co | - | Ten crop |
-| `slug` | `String` | Co | - | Unique, dung lam dinh danh mem |
-| `farm_type_id` | `ObjectId` | Co | - | Ref `Farmtype` |
-| `category` | `String` | Khong | `'fruit'` | Nhom crop, comment goi y `fruit`, `livestock`, `aquaculture` |
-| `icon` | `String` | Co | - | Icon hien thi |
-| `image` | `String` | Khong | - | Anh minh hoa |
-| `color` | `String` | Co | - | Mau hien thi |
-| `is_active` | `Boolean` | Khong | `true` | Bat/tat crop |
+| Truong         | Kieu       | Bat buoc | Mac dinh  | Ghi chu                                                      |
+| -------------- | ---------- | -------: | --------- | ------------------------------------------------------------ |
+| `name`         | `String`   |       Co | -         | Ten crop                                                     |
+| `slug`         | `String`   |       Co | -         | Unique, dung lam dinh danh mem                               |
+| `farm_type_id` | `ObjectId` |       Co | -         | Ref `Farmtype`                                               |
+| `category`     | `String`   |    Khong | `'fruit'` | Nhom crop, comment goi y `fruit`, `livestock`, `aquaculture` |
+| `icon`         | `String`   |       Co | -         | Icon hien thi                                                |
+| `image`        | `String`   |    Khong | -         | Anh minh hoa                                                 |
+| `color`        | `String`   |       Co | -         | Mau hien thi                                                 |
+| `is_active`    | `Boolean`  |    Khong | `true`    | Bat/tat crop                                                 |
 
 #### Timestamps
 
@@ -509,9 +531,9 @@ Danh muc cay trong/vat nuoi/doi tuong san xuat duoc phep gan cho farm. Dung de:
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ slug: 1 }` unique | Dinh danh duy nhat |
+| Index                 | Muc dich                |
+| --------------------- | ----------------------- |
+| `{ slug: 1 }` unique  | Dinh danh duy nhat      |
 | `{ farm_type_id: 1 }` | Tim crop theo loai farm |
 
 #### Quan he
@@ -533,9 +555,11 @@ Danh muc cay trong/vat nuoi/doi tuong san xuat duoc phep gan cho farm. Dung de:
 ---
 
 ### 4.9. `Farm`
+
 File: `src/models/Farm.model.ts`
 
 #### Muc dich
+
 Model trung tam cho mot nong trai/khu san xuat. Moi farm lien voi:
 
 - chu so huu `owner`
@@ -546,63 +570,63 @@ Model trung tam cho mot nong trai/khu san xuat. Moi farm lien voi:
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `owner_id` | `ObjectId` | Co | - | Ref `User`, chu tai khoan |
-| `user_id` | `ObjectId` | Co | - | Ref `User`, tai khoan gan voi farm |
-| `farm_name` | `String` | Co | - | Ten nong trai |
-| `location` | `String` | Khong | `""` | Mo ta dia diem text |
-| `farm_type_id` | `ObjectId` | Co | - | Ref `Farmtype` |
-| `polygon.type` | `String` | Khong | - | Enum `Polygon` |
-| `polygon.coordinates` | `number[][][]` | Khong | - | Toa do geojson polygon |
-| `geo_location` | `Array<Number>` | Khong | - | Toa do phuc vu query map |
-| `area` | `Number` | Khong | `0` | Dien tich |
-| `unit` | `String` | Khong | `'ha'` | Don vi dien tich |
-| `soil_type` | `String` | Khong | - | Loai dat |
-| `farm_status` | `String` | Khong | `'active'` | Enum: `active`, `inactive`, `under_maintenance` |
-| `description` | `String` | Khong | - | Mo ta farm |
-| `avatar` | `String` | Khong | `""` | Anh dai dien |
-| `province` | `Province subdocument` | Co | - | Thong tin tinh/thanh |
-| `ward` | `Ward subdocument` | Co | - | Thong tin phuong/xa |
-| `created_at` | `Date` | Khong | `Date.now` | Ngay tao |
-| `updated_at` | `Date` | Khong | `Date.now` | Ngay cap nhat |
+| Truong                | Kieu                   | Bat buoc | Mac dinh   | Ghi chu                                         |
+| --------------------- | ---------------------- | -------: | ---------- | ----------------------------------------------- |
+| `owner_id`            | `ObjectId`             |       Co | -          | Ref `User`, chu tai khoan                       |
+| `user_id`             | `ObjectId`             |       Co | -          | Ref `User`, tai khoan gan voi farm              |
+| `farm_name`           | `String`               |       Co | -          | Ten nong trai                                   |
+| `location`            | `String`               |    Khong | `""`       | Mo ta dia diem text                             |
+| `farm_type_id`        | `ObjectId`             |       Co | -          | Ref `Farmtype`                                  |
+| `polygon.type`        | `String`               |    Khong | -          | Enum `Polygon`                                  |
+| `polygon.coordinates` | `number[][][]`         |    Khong | -          | Toa do geojson polygon                          |
+| `geo_location`        | `Array<Number>`        |    Khong | -          | Toa do phuc vu query map                        |
+| `area`                | `Number`               |    Khong | `0`        | Dien tich                                       |
+| `unit`                | `String`               |    Khong | `'ha'`     | Don vi dien tich                                |
+| `soil_type`           | `String`               |    Khong | -          | Loai dat                                        |
+| `farm_status`         | `String`               |    Khong | `'active'` | Enum: `active`, `inactive`, `under_maintenance` |
+| `description`         | `String`               |    Khong | -          | Mo ta farm                                      |
+| `avatar`              | `String`               |    Khong | `""`       | Anh dai dien                                    |
+| `province`            | `Province subdocument` |       Co | -          | Thong tin tinh/thanh                            |
+| `ward`                | `Ward subdocument`     |       Co | -          | Thong tin phuong/xa                             |
+| `created_at`          | `Date`                 |    Khong | `Date.now` | Ngay tao                                        |
+| `updated_at`          | `Date`                 |    Khong | `Date.now` | Ngay cap nhat                                   |
 
 #### `Province` subdocument
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `id` | `String` | Khong | - | ID ngoai |
-| `province_code` | `String` | Co | - | Ma tinh |
-| `name` | `String` | Co | - | Ten tinh |
-| `short_name` | `String` | Khong | - | Ten ngan |
-| `code` | `String` | Khong | - | Ma khac |
-| `place_type` | `String` | Khong | - | Kieu don vi hanh chinh |
-| `country` | `String` | Khong | `'VN'` | Quoc gia |
-| `created_at` | `String` | Khong | `null` | Metadata |
-| `updated_at` | `String` | Khong | `null` | Metadata |
+| Truong          | Kieu     | Bat buoc | Mac dinh | Ghi chu                |
+| --------------- | -------- | -------: | -------- | ---------------------- |
+| `id`            | `String` |    Khong | -        | ID ngoai               |
+| `province_code` | `String` |       Co | -        | Ma tinh                |
+| `name`          | `String` |       Co | -        | Ten tinh               |
+| `short_name`    | `String` |    Khong | -        | Ten ngan               |
+| `code`          | `String` |    Khong | -        | Ma khac                |
+| `place_type`    | `String` |    Khong | -        | Kieu don vi hanh chinh |
+| `country`       | `String` |    Khong | `'VN'`   | Quoc gia               |
+| `created_at`    | `String` |    Khong | `null`   | Metadata               |
+| `updated_at`    | `String` |    Khong | `null`   | Metadata               |
 
 #### `Ward` subdocument
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `id` | `String` | Khong | - | ID ngoai |
-| `ward_code` | `String` | Co | - | Ma xa/phuong |
-| `name` | `String` | Co | - | Ten xa/phuong |
-| `province_code` | `String` | Co | - | Ma tinh |
-| `created_at` | `String` | Khong | `null` | Metadata |
-| `updated_at` | `String` | Khong | `null` | Metadata |
+| Truong          | Kieu     | Bat buoc | Mac dinh | Ghi chu       |
+| --------------- | -------- | -------: | -------- | ------------- |
+| `id`            | `String` |    Khong | -        | ID ngoai      |
+| `ward_code`     | `String` |       Co | -        | Ma xa/phuong  |
+| `name`          | `String` |       Co | -        | Ten xa/phuong |
+| `province_code` | `String` |       Co | -        | Ma tinh       |
+| `created_at`    | `String` |    Khong | `null`   | Metadata      |
+| `updated_at`    | `String` |    Khong | `null`   | Metadata      |
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ owner_id: 1 }` | Lay farm theo owner |
-| `{ user_id: 1 }` | Lay farm theo sub-account |
-| `{ farm_type_id: 1 }` | Loc theo loai farm |
-| `{ created_at: -1 }` | Sap xep moi nhat |
-| `{ farm_status: 1 }` | Loc theo trang thai |
-| `{ geo_location: '2dsphere' }` | Query vi tri tren map |
-| `{ polygon: '2dsphere' }` | Query polygon tren map |
+| Index                              | Muc dich                     |
+| ---------------------------------- | ---------------------------- |
+| `{ owner_id: 1 }`                  | Lay farm theo owner          |
+| `{ user_id: 1 }`                   | Lay farm theo sub-account    |
+| `{ farm_type_id: 1 }`              | Loc theo loai farm           |
+| `{ created_at: -1 }`               | Sap xep moi nhat             |
+| `{ farm_status: 1 }`               | Loc theo trang thai          |
+| `{ geo_location: '2dsphere' }`     | Query vi tri tren map        |
+| `{ polygon: '2dsphere' }`          | Query polygon tren map       |
 | `{ owner_id: 1, farm_type_id: 1 }` | Loc farm cua owner theo loai |
 
 #### Quan he
@@ -644,19 +668,21 @@ Toan bo duoc bao trong transaction session.
 ---
 
 ### 4.10. `FarmCrop`
+
 File: `src/models/FarmCrop.model.ts`
 
 #### Muc dich
+
 Bang lien ket giua `Farm` va `Crop`, cho phep mot farm co nhieu crop va danh dau crop chinh de hien thi tren map.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `farm_id` | `ObjectId` | Co | - | Ref `Farm` |
-| `crop_id` | `ObjectId` | Co | - | Ref `Crop` |
-| `area` | `Number` | Khong | `0` | Dien tich danh cho crop do |
-| `is_primary` | `Boolean` | Khong | `true` | Crop chinh cua farm |
+| Truong       | Kieu       | Bat buoc | Mac dinh | Ghi chu                    |
+| ------------ | ---------- | -------: | -------- | -------------------------- |
+| `farm_id`    | `ObjectId` |       Co | -        | Ref `Farm`                 |
+| `crop_id`    | `ObjectId` |       Co | -        | Ref `Crop`                 |
+| `area`       | `Number`   |    Khong | `0`      | Dien tich danh cho crop do |
+| `is_primary` | `Boolean`  |    Khong | `true`   | Crop chinh cua farm        |
 
 #### Timestamps
 
@@ -665,10 +691,10 @@ Bang lien ket giua `Farm` va `Crop`, cho phep mot farm co nhieu crop va danh dau
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ farm_id: 1 }` | Tim crop theo farm |
-| `{ crop_id: 1 }` | Tim farm theo crop |
+| Index                        | Muc dich                                  |
+| ---------------------------- | ----------------------------------------- |
+| `{ farm_id: 1 }`             | Tim crop theo farm                        |
+| `{ crop_id: 1 }`             | Tim farm theo crop                        |
 | `{ farm_id: 1, crop_id: 1 }` | Tranh query cham va kiem tra cap lien ket |
 
 #### Quan he
@@ -689,20 +715,22 @@ Bang lien ket giua `Farm` va `Crop`, cho phep mot farm co nhieu crop va danh dau
 ---
 
 ### 4.11. `FarmMedia`
+
 File: `src/models/FarmMedia.ts`
 
 #### Muc dich
+
 Luu danh sach hinh anh/video cua farm.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `farm_id` | `ObjectId` | Co | - | Ref `Farm` |
-| `type` | `String` | Khong | `'image'` | Enum: `image`, `video` |
-| `url` | `String` | Co | - | Link media |
-| `is_cover` | `Boolean` | Khong | `false` | Anh/video cover |
-| `order` | `Number` | Khong | `0` | Thu tu hien thi |
+| Truong     | Kieu       | Bat buoc | Mac dinh  | Ghi chu                |
+| ---------- | ---------- | -------: | --------- | ---------------------- |
+| `farm_id`  | `ObjectId` |       Co | -         | Ref `Farm`             |
+| `type`     | `String`   |    Khong | `'image'` | Enum: `image`, `video` |
+| `url`      | `String`   |       Co | -         | Link media             |
+| `is_cover` | `Boolean`  |    Khong | `false`   | Anh/video cover        |
+| `order`    | `Number`   |    Khong | `0`       | Thu tu hien thi        |
 
 #### Timestamps
 
@@ -722,9 +750,11 @@ Luu danh sach hinh anh/video cua farm.
 ---
 
 ### 4.12. `Activities`
+
 File: `src/models/Activities.model.ts`
 
 #### Muc dich
+
 Danh muc hoat dong co the ghi nhan trong nhat ky san xuat, theo tung loai nong trai.
 Vi du:
 
@@ -737,22 +767,22 @@ Moi activity co mot danh sach field dong de frontend render form nhap lieu.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `farm_type_id` | `ObjectId` | Co | - | Ref `Farmtype` |
-| `activity_name` | `String` | Co | - | Ten hoat dong |
-| `image` | `String` | Khong | Cloudinary URL mac dinh | Anh dai dien |
-| `description` | `String` | Khong | - | Mo ta |
-| `fields` | `Array<Field>` | Khong | `[]` | Danh sach field dong |
+| Truong          | Kieu           | Bat buoc | Mac dinh                | Ghi chu              |
+| --------------- | -------------- | -------: | ----------------------- | -------------------- |
+| `farm_type_id`  | `ObjectId`     |       Co | -                       | Ref `Farmtype`       |
+| `activity_name` | `String`       |       Co | -                       | Ten hoat dong        |
+| `image`         | `String`       |    Khong | Cloudinary URL mac dinh | Anh dai dien         |
+| `description`   | `String`       |    Khong | -                       | Mo ta                |
+| `fields`        | `Array<Field>` |    Khong | `[]`                    | Danh sach field dong |
 
 #### `fields`
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `field_name` | `String` | Co | - | Ten field |
-| `field_type` | `String` | Co | - | Kieu field |
-| `is_required` | `Boolean` | Khong | `false` | Co bat buoc khong |
-| `options` | `String[]` | Khong | - | Lua chon cho field select |
+| Truong        | Kieu       | Bat buoc | Mac dinh | Ghi chu                   |
+| ------------- | ---------- | -------: | -------- | ------------------------- |
+| `field_name`  | `String`   |       Co | -        | Ten field                 |
+| `field_type`  | `String`   |       Co | -        | Kieu field                |
+| `is_required` | `Boolean`  |    Khong | `false`  | Co bat buoc khong         |
+| `options`     | `String[]` |    Khong | -        | Lua chon cho field select |
 
 #### Timestamps
 
@@ -761,11 +791,11 @@ Moi activity co mot danh sach field dong de frontend render form nhap lieu.
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ farm_type_id: 1 }` | Tim activity theo loai farm |
-| `{ activity_name: 1 }` | Tim theo ten |
-| `{ created_at: -1 }` | Du kien sap xep, nhung field nay khong ton tai |
+| Index                                 | Muc dich                                                         |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `{ farm_type_id: 1 }`                 | Tim activity theo loai farm                                      |
+| `{ activity_name: 1 }`                | Tim theo ten                                                     |
+| `{ created_at: -1 }`                  | Du kien sap xep, nhung field nay khong ton tai                   |
 | `{ farm_type_id: 1, created_at: -1 }` | Du kien sap xep theo loai + thoi gian, nhung field khong ton tai |
 
 #### Quan he
@@ -785,9 +815,11 @@ Moi activity co mot danh sach field dong de frontend render form nhap lieu.
 ---
 
 ### 4.13. `ProductionBook`
+
 File: `src/models/ProductionBook.model.ts`
 
 #### Muc dich
+
 Luu "so san xuat" hoac "vu san xuat" cua mot farm.
 Co the hieu no la thuc the cap cao hon `ProductionLog`.
 
@@ -801,19 +833,19 @@ Moi `ProductionBook` co nhieu `ProductionLog`.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `farm_id` | `ObjectId` | Co | - | Ref `Farm` |
-| `farm_type_id` | `ObjectId` | Co | - | Ref `Farmtype` |
-| `name` | `String` | Co | - | Ten so/vu |
-| `production` | `String` | Co | - | Ten doi tuong san xuat |
-| `description` | `String` | Khong | - | Mo ta |
-| `image` | `String` | Khong | Cloudinary URL mac dinh | Anh |
-| `start_date` | `Date` | Co | - | Bat dau |
-| `end_date` | `Date` | Khong | - | Ket thuc |
-| `status` | `String` | Khong | `'ongoing'` | Enum: `ongoing`, `completed` |
-| `created_by` | `ObjectId` | Co | - | Ref `User` |
-| `general_info` | `Mixed` | Khong | `{}` | Du lieu dong bo sung |
+| Truong         | Kieu       | Bat buoc | Mac dinh                | Ghi chu                      |
+| -------------- | ---------- | -------: | ----------------------- | ---------------------------- |
+| `farm_id`      | `ObjectId` |       Co | -                       | Ref `Farm`                   |
+| `farm_type_id` | `ObjectId` |       Co | -                       | Ref `Farmtype`               |
+| `name`         | `String`   |       Co | -                       | Ten so/vu                    |
+| `production`   | `String`   |       Co | -                       | Ten doi tuong san xuat       |
+| `description`  | `String`   |    Khong | -                       | Mo ta                        |
+| `image`        | `String`   |    Khong | Cloudinary URL mac dinh | Anh                          |
+| `start_date`   | `Date`     |       Co | -                       | Bat dau                      |
+| `end_date`     | `Date`     |    Khong | -                       | Ket thuc                     |
+| `status`       | `String`   |    Khong | `'ongoing'`             | Enum: `ongoing`, `completed` |
+| `created_by`   | `ObjectId` |       Co | -                       | Ref `User`                   |
+| `general_info` | `Mixed`    |    Khong | `{}`                    | Du lieu dong bo sung         |
 
 #### Timestamps
 
@@ -822,11 +854,11 @@ Moi `ProductionBook` co nhieu `ProductionLog`.
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
+| Index                       | Muc dich                       |
+| --------------------------- | ------------------------------ |
 | `{ farm_id: 1, status: 1 }` | Lay so theo farm va trang thai |
-| `{ created_by: 1 }` | Tim theo nguoi tao |
-| `{ start_date: -1 }` | Sap xep theo ngay bat dau |
+| `{ created_by: 1 }`         | Tim theo nguoi tao             |
+| `{ start_date: -1 }`        | Sap xep theo ngay bat dau      |
 
 #### Quan he
 
@@ -843,9 +875,11 @@ Moi `ProductionBook` co nhieu `ProductionLog`.
 ---
 
 ### 4.14. `ProductionLog`
+
 File: `src/models/ProductionLogs.model.ts`
 
 #### Muc dich
+
 Luu tung ban ghi nhat ky san xuat chi tiet. Day la du lieu van hanh duoc tao thuong xuyen nhat trong he thong.
 
 Moi log mo ta:
@@ -859,27 +893,27 @@ Moi log mo ta:
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `farm_id` | `ObjectId` | Co | - | Ref `Farm` |
-| `activity_id` | `ObjectId` | Co | - | Ref `Activities` |
-| `book_id` | `ObjectId` | Co | - | Ref `ProductionBook` |
-| `date` | `Date` | Co | - | Ngay xay ra hoat dong |
-| `data` | `Object` | Khong | `{}` | Du lieu form dong |
-| `notes` | `String` | Khong | - | Ghi chu |
-| `created_by` | `ObjectId` | Co | - | Ref `User` |
-| `created_at` | `Date` | Khong | `Date.now` | Ngay tao |
-| `updated_at` | `Date` | Khong | `Date.now` | Ngay cap nhat |
+| Truong        | Kieu       | Bat buoc | Mac dinh   | Ghi chu               |
+| ------------- | ---------- | -------: | ---------- | --------------------- |
+| `farm_id`     | `ObjectId` |       Co | -          | Ref `Farm`            |
+| `activity_id` | `ObjectId` |       Co | -          | Ref `Activities`      |
+| `book_id`     | `ObjectId` |       Co | -          | Ref `ProductionBook`  |
+| `date`        | `Date`     |       Co | -          | Ngay xay ra hoat dong |
+| `data`        | `Object`   |    Khong | `{}`       | Du lieu form dong     |
+| `notes`       | `String`   |    Khong | -          | Ghi chu               |
+| `created_by`  | `ObjectId` |       Co | -          | Ref `User`            |
+| `created_at`  | `Date`     |    Khong | `Date.now` | Ngay tao              |
+| `updated_at`  | `Date`     |    Khong | `Date.now` | Ngay cap nhat         |
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
-| `{ farm_id: 1, date: -1 }` | Lay log theo farm |
+| Index                      | Muc dich                 |
+| -------------------------- | ------------------------ |
+| `{ farm_id: 1, date: -1 }` | Lay log theo farm        |
 | `{ book_id: 1, date: -1 }` | Lay log theo so san xuat |
-| `{ activity_id: 1 }` | Tim log theo activity |
-| `{ created_by: 1 }` | Tim theo nguoi tao |
-| `{ created_at: -1 }` | Lay log moi nhat |
+| `{ activity_id: 1 }`       | Tim log theo activity    |
+| `{ created_by: 1 }`        | Tim theo nguoi tao       |
+| `{ created_at: -1 }`       | Lay log moi nhat         |
 
 #### Quan he
 
@@ -903,19 +937,21 @@ Moi log mo ta:
 ---
 
 ### 4.15. `ProductionReport`
+
 File: `src/models/ProductionReport.ts`
 
 #### Muc dich
+
 Luu bao cao tong hop san luong theo nam cho tung farm.
 
 #### Truong du lieu
 
-| Truong | Kieu | Bat buoc | Mac dinh | Ghi chu |
-|---|---|---:|---|---|
-| `farm_id` | `ObjectId` | Co | - | Ref `Farm` |
-| `year` | `Number` | Co | - | Nam bao cao |
-| `yield` | `Number` | Co | - | San luong |
-| `unit` | `String` | Khong | `'ton'` | Don vi |
+| Truong    | Kieu       | Bat buoc | Mac dinh | Ghi chu     |
+| --------- | ---------- | -------: | -------- | ----------- |
+| `farm_id` | `ObjectId` |       Co | -        | Ref `Farm`  |
+| `year`    | `Number`   |       Co | -        | Nam bao cao |
+| `yield`   | `Number`   |       Co | -        | San luong   |
+| `unit`    | `String`   |    Khong | `'ton'`  | Don vi      |
 
 #### Timestamps
 
@@ -924,8 +960,8 @@ Luu bao cao tong hop san luong theo nam cho tung farm.
 
 #### Index
 
-| Index | Muc dich |
-|---|---|
+| Index                     | Muc dich                     |
+| ------------------------- | ---------------------------- |
 | `{ farm_id: 1, year: 1 }` | Tim bao cao theo farm va nam |
 
 #### Quan he
@@ -1015,6 +1051,7 @@ Model tham gia:
 ## 6. Danh sach quan he theo tung model
 
 ### `User`
+
 - Tu quan he:
   - 1 owner -> n sub_account
 - Lien ket den:
@@ -1026,6 +1063,7 @@ Model tham gia:
   - `PackageSubscription.owner_id`
 
 ### `Farmtype`
+
 - Lien ket den:
   - `Farm.farm_type_id`
   - `FarmTypeConfig.farm_type_id`
@@ -1034,6 +1072,7 @@ Model tham gia:
   - `ProductionBook.farm_type_id`
 
 ### `Farm`
+
 - Lien ket den:
   - `FarmCrop.farm_id`
   - `FarmMedia.farm_id`
@@ -1042,46 +1081,52 @@ Model tham gia:
   - `ProductionReport.farm_id`
 
 ### `Crop`
+
 - Lien ket den:
   - `FarmCrop.crop_id`
 
 ### `Activities`
+
 - Lien ket den:
   - `ProductionLog.activity_id`
 
 ### `ProductionBook`
+
 - Lien ket den:
   - `ProductionLog.book_id`
 
 ### `ServiceModule`
+
 - Lien ket den:
   - `SubscriptionPackage.module_id`
   - `UserSubscription.module_id`
 
 ### `SubscriptionPackage`
+
 - Lien ket den:
   - `UserSubscription.package_id`
 
 ## 7. Danh sach collection suy ra tu model
+
 Mongoose mac dinh pluralize ten model thanh ten collection. Theo cach dat ten hien tai, collection du kien se gan nhu sau:
 
-| Model name | Collection du kien |
-|---|---|
-| `User` | `users` |
-| `ServiceModule` | `servicemodules` |
+| Model name            | Collection du kien     |
+| --------------------- | ---------------------- |
+| `User`                | `users`                |
+| `ServiceModule`       | `servicemodules`       |
 | `SubscriptionPackage` | `subscriptionpackages` |
-| `UserSubscription` | `usersubscriptions` |
+| `UserSubscription`    | `usersubscriptions`    |
 | `PackageSubscription` | `packagesubscriptions` |
-| `Farmtype` | `farmtypes` |
-| `FarmTypeConfig` | `farmtypeconfigs` |
-| `Crop` | `crops` |
-| `Farm` | `farms` |
-| `FarmCrop` | `farmcrops` |
-| `FarmMedia` | `farmmedias` |
-| `Activities` | `activities` |
-| `ProductionBook` | `productionbooks` |
-| `ProductionLog` | `productionlogs` |
-| `ProductionReport` | `productionreports` |
+| `Farmtype`            | `farmtypes`            |
+| `FarmTypeConfig`      | `farmtypeconfigs`      |
+| `Crop`                | `crops`                |
+| `Farm`                | `farms`                |
+| `FarmCrop`            | `farmcrops`            |
+| `FarmMedia`           | `farmmedias`           |
+| `Activities`          | `activities`           |
+| `ProductionBook`      | `productionbooks`      |
+| `ProductionLog`       | `productionlogs`       |
+| `ProductionReport`    | `productionreports`    |
 
 Luu y:
 
@@ -1090,11 +1135,13 @@ Luu y:
 ## 8. Cac diem chua dong bo can dac biet luu y
 
 ### 8.1. `PackageSubscription` dang ref sai model
+
 - `package_id` dang ref `'Package'`
 - Codebase hien tai khong co model `Package`
 - Rat de gay populate loi neu bat dau dung model nay
 
 ### 8.2. `createdAt` va `created_at` dang dung lan
+
 He thong hien tai dang ton tai ca hai kieu:
 
 - Kieu khai bao tay:
@@ -1110,11 +1157,13 @@ Dieu nay lam:
 - Sort/index co the sai neu copy-paste logic giua cac model
 
 ### 8.3. Index sai ten field trong `Activities`
+
 - Schema dung `timestamps: true`
 - Nhung index lai tro vao `created_at`
 - `created_at` khong ton tai trong document neu khong set thu cong
 
 ### 8.4. Sort theo `createdAt` o cac model khong co timestamps
+
 It nhat cac controller sau dang co nguy co nay:
 
 - `serviceModule.controller.ts`
@@ -1123,16 +1172,19 @@ It nhat cac controller sau dang co nguy co nay:
 Trong khi model khong co `timestamps: true` va cung khong khai bao `createdAt`.
 
 ### 8.5. `updateUser` cap nhat sai ten field
+
 - Controller dang set `updatedAt`
 - Schema `User` lai dung `updated_at`
 
 ### 8.6. `Farm.geo_location` lech giua interface va schema
+
 - Interface: `string`
 - Schema: `Array<Number>`
 
 Schema moi la nguon su that khi luu DB.
 
 ### 8.7. `ProductionLog` nhac den `chemical_usages` nhung schema khong co
+
 - Controller nhan `chemical_usages` tu request
 - Schema da comment toan bo phan nay
 - Nghia la du lieu nay hien tai khong duoc luu theo dung schema
@@ -1140,6 +1192,7 @@ Schema moi la nguon su that khi luu DB.
 ## 9. De xuat de ban maintain de hon ve sau
 
 ### Neu muc tieu la on dinh schema
+
 - Chuan hoa mot kieu timestamp duy nhat:
   - hoac `timestamps: true`
   - hoac `created_at/updated_at`
@@ -1151,6 +1204,7 @@ Schema moi la nguon su that khi luu DB.
   - danh dau deprecated hoac xoa model
 
 ### Neu muc tieu la mo rong nghiep vu
+
 - Them unique/index nghiep vu cho `UserSubscription`
   - vi du chan trung `user_id + module_id + status=active`
 - Enum hoa `Farm.unit`
@@ -1158,6 +1212,7 @@ Schema moi la nguon su that khi luu DB.
 - Xem xet soft delete/thong tin audit cho `Farm`, `Activities`, `ProductionBook`
 
 ## 10. Ket luan
+
 Neu nhin o muc do nghiep vu, he thong database hien tai xoay quanh 4 truc chinh:
 
 1. `User` va mo hinh `owner -> sub_account`

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
 
 import FarmModel from '../src/models/Farm.model';
 import { Crop } from '../src/models/CropCategories';
@@ -10,7 +11,7 @@ import UserModel from '../src/models/User.model';
 import { farmHouseGeoJson } from './FakeData';
 import { FARM_FAKE_DATA } from './farmDetails';
 
-dotenv.config({ path: '../.env.local' });
+dotenv.config({ path: path.join(__dirname, '../.env.local') });
 
 const OWNER_ID = new mongoose.Types.ObjectId('68a68a6a2e3470286e746d1b');
 
@@ -38,11 +39,11 @@ const WARD = {
 
 // ===== MAP cropId → slug =====
 const CROP_SLUG_MAP: Record<string, string> = {
-  dau: 'dau-ha-chau',
+  dau: 'crop-dau',
   'sau-rieng': 'crop-sau-rieng',
   'mang-cut': 'crop-mang-cut',
-  'chom-chom': 'crop-chom-chom',
-  xoai: 'crop-xoai'
+  'chom-chom': 'chom-chom',
+  xoai: 'xoai'
 };
 
 async function cleanupLastSeedFarms() {

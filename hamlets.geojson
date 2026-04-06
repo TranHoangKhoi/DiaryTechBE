@@ -1,0 +1,335 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Phước Trung",
+        "osm_name": "Phước Trung",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2728493,
+          10.5842666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Hiệp Hòa",
+        "osm_name": "Hiệp Hòa",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2704971,
+          10.4790134
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Thanh Tân",
+        "osm_name": "Thanh Tân",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2606158,
+          10.4853011
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Thanh Long",
+        "osm_name": "Thanh Long",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2644889,
+          10.4958822
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Tường Thành",
+        "osm_name": "Tường Thành",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.3159551,
+          10.5021168
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Thanh An",
+        "osm_name": "Thanh An",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.3369247,
+          10.5045115
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gò Sầm",
+        "osm_name": "Gò Sầm",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.3618746,
+          10.5305559
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Phước Trung",
+        "osm_name": "Phước Trung",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2273828,
+          10.4642311
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Tân Thuận",
+        "osm_name": "Tân Thuận",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2777778,
+          10.5608333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tân Hòa",
+        "osm_name": "Tân Hòa",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2788889,
+          10.5408333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tân Hiệp",
+        "osm_name": "Tân Hiệp",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.255,
+          10.5516667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Phước Trung",
+        "osm_name": "Phước Trung",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2923838,
+          10.4902394
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Phước Thới",
+        "osm_name": "Phước Thới",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2878371,
+          10.5018425
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Phước Sơn",
+        "osm_name": "Phước Sơn",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.3181546,
+          10.5208685
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Hòa Hội",
+        "osm_name": "Hòa Hội",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2591667,
+          10.4786111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Phước Sơn",
+        "osm_name": "Phước Sơn",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2711111,
+          10.4972222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Phước Trung",
+        "osm_name": "Phước Trung",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2744887,
+          10.4844827
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Phước Thới",
+        "osm_name": "Hiệp Hòa",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2747028,
+          10.4888179
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Thanh Bình",
+        "osm_name": "Thanh Bình",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2597222,
+          10.4933333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khu phố Tường Thành",
+        "osm_name": "Tường Thành",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.2666667,
+          10.4788889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Láng Dài",
+        "osm_name": "Ấp Láng Dài",
+        "type": "village"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.3230088,
+          10.4919479
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ấp Cây Cám",
+        "osm_name": "Cây Cám",
+        "type": "neighbourhood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.3543512,
+          10.51814
+        ]
+      }
+    }
+  ]
+}

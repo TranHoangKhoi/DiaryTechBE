@@ -51,7 +51,7 @@ UserSchema.methods.comparePassword = async function (password: string): Promise<
   return await bcrypt.compare(password, this.password);
 };
 
-UserSchema.index({ phone: 1 }, { unique: true }); // tra cứu nhanh, đảm bảo duy nhất
+// UserSchema.index({ phone: 1 }, { unique: true }); // index này đã được tạo tự động bởi { unique: true } ở trên
 UserSchema.index({ owner_id: 1 }); // khi load sub-account theo chủ
 UserSchema.index({ role: 1 });
 UserSchema.index({ status: 1 });

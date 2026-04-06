@@ -29,6 +29,6 @@ const CropSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-CropSchema.index({ farm_type_id: 1 });
+// CropSchema.index({ farm_type_id: 1 }); // Đã có index: true ở trên
 
 export const Crop = mongoose.model('Crop', CropSchema);

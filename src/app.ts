@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 phút
-    max: 100 // giới hạn 100 request/IP
+    max: 1000 // giới hạn 100 request/IP
   })
 );
 
