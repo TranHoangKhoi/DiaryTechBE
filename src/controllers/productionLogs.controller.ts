@@ -68,7 +68,7 @@ export const createProductionLog = async (req: Request, res: Response) => {
 export const getProductionLogsByFarm = async (req: Request, res: Response) => {
   try {
     const { farm_id } = req.params;
-    const { book_id, page, limit } = req.query;
+    const { book_id, activity_id, start_date, end_date, page, limit } = req.query;
 
     if (!farm_id) {
       res.status(400).json({
@@ -81,7 +81,63 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
     const filter: any = { farm_id };
 
     if (book_id) {
+      if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'Mã cuốn nhât ký không hợp lệ'
+        });
+        return;
+      }
+
       filter.book_id = book_id;
+    }
+
+    if (activity_id) {
+      if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'Mã hoạt động không hợp lệ'
+        });
+        return;
+      }
+
+      filter.activity_id = activity_id;
+    }
+
+    if (start_date || end_date) {
+      const dateFilter: Record<string, Date> = {};
+
+      if (start_date) {
+        const startDate = new Date(start_date as string);
+
+        if (isNaN(startDate.getTime())) {
+          res.status(400).json({
+            success: false,
+            message: 'Ngày bắt đầu không hợp lệ'
+          });
+          return;
+        }
+
+        startDate.setHours(0, 0, 0, 0);
+        dateFilter.$gte = startDate;
+      }
+
+      if (end_date) {
+        const endDate = new Date(end_date as string);
+
+        if (isNaN(endDate.getTime())) {
+          res.status(400).json({
+            success: false,
+            message: 'Ngày kết thúc không hợp lệ'
+          });
+          return;
+        }
+
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter.$lte = endDate;
+      }
+
+      filter.date = dateFilter;
     }
 
     const baseQuery = ProductionLogsModel.find(filter)
@@ -320,7 +376,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
     const ownerId = req.user?.id;
     console.log('ownerId: ', req.user?.id);
 
-    const { farmer_id, farm_id, page = 1, limit = 10 } = req.query;
+    const { farmer_id, farm_id, book_id, activity_id, start_date, end_date, search, page = 1, limit = 10 } = req.query;
 
     const pageNumber = Math.max(parseInt(page as string), 1);
     const limitNumber = Math.max(parseInt(limit as string), 1);
@@ -335,10 +391,26 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
     };
 
     if (farmer_id) {
+      if (!mongoose.Types.ObjectId.isValid(farmer_id as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'Hộ nông dân không hợp lệ'
+        });
+        return;
+      }
+
       farmFilter.user_id = farmer_id;
     }
 
     if (farm_id) {
+      if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'Mã trang trại không hợp lệ'
+        });
+        return;
+      }
+
       farmFilter._id = farm_id;
     }
 
@@ -346,14 +418,82 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
 
     const farmIds = farms.map((f: any) => f._id);
 
+    const logFilter: any = {
+      farm_id: { $in: farmIds }
+    };
+
+    if (book_id) {
+      if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'Mã cuốn nhật ký không hợp lệ'
+        });
+        return;
+      }
+
+      logFilter.book_id = book_id;
+    }
+
+    if (activity_id) {
+      if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'Mã hoạt động không hợp lệ'
+        });
+        return;
+      }
+
+      logFilter.activity_id = activity_id;
+    }
+
+    if (start_date || end_date) {
+      const dateFilter: Record<string, Date> = {};
+
+      if (start_date) {
+        const startDate = new Date(start_date as string);
+
+        if (isNaN(startDate.getTime())) {
+          res.status(400).json({
+            success: false,
+            message: 'Ngày bắt đầu không hợp lệ'
+          });
+          return;
+        }
+
+        startDate.setHours(0, 0, 0, 0);
+        dateFilter.$gte = startDate;
+      }
+
+      if (end_date) {
+        const endDate = new Date(end_date as string);
+
+        if (isNaN(endDate.getTime())) {
+          res.status(400).json({
+            success: false,
+            message: 'Ngày kết thúc không hợp lệ'
+          });
+          return;
+        }
+
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter.$lte = endDate;
+      }
+
+      logFilter.date = dateFilter;
+    }
+
+    if (search && (search as string).trim()) {
+      const escapedSearch = (search as string).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      logFilter.$or = [{ notes: { $regex: escapedSearch, $options: 'i' } }];
+    }
+
     // ==============================
     // Query production logs
     // ==============================
 
     const [logs, total] = await Promise.all([
-      ProductionLogsModel.find({
-        farm_id: { $in: farmIds }
-      })
+      ProductionLogsModel.find(logFilter)
         .populate('farm_id', 'farm_name avatar province ward location')
         .populate('activity_id', 'activity_name image description')
         .populate('created_by', 'name avatar')
@@ -362,9 +502,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
         .skip(skip)
         .limit(limitNumber),
 
-      ProductionLogsModel.countDocuments({
-        farm_id: { $in: farmIds }
-      })
+      ProductionLogsModel.countDocuments(logFilter)
     ]);
 
     res.status(200).json({

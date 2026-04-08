@@ -79,7 +79,7 @@ const FarmSchema = new mongoose.Schema<IFarm>({
   owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   farm_name: { type: String, required: true },
-  location: { type: String, required: false, default: "" },
+  location: { type: String, required: false, default: '' },
   farm_type_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Farmtype',
@@ -104,7 +104,7 @@ const FarmSchema = new mongoose.Schema<IFarm>({
     default: 'active'
   },
   description: { type: String },
-  avatar: { type: String, required: false, default: "" },
+  avatar: { type: String, required: false, default: '' },
   province: { type: ProvinceSchema, required: true },
   ward: { type: WardSchema, required: true },
   created_at: { type: Date, default: Date.now },

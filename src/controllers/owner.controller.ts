@@ -97,8 +97,13 @@ export const getOwnerStatistics = async (req: Request, res: Response): Promise<v
     const totalAreaValue = areaStats[0]?.totalArea || 0;
 
     // Lấy danh sách farm_id thuộc owner để dùng cho các query sau
-    const farms = await Farm.find({ owner_id: ownerObjectId }).select('_id');
+    const farms = await Farm.find({ owner_id: ownerObjectId }).select('_id farm_type_id');
     const farmIds = farms.map((f) => f._id);
+    const totalFarmTypes = new Set(farms.map((f) => String(f.farm_type_id))).size;
+
+    const totalProductionLogs = await ProductionLog.countDocuments({
+      farm_id: { $in: farmIds }
+    });
 
     // 4. Cơ cấu cây trồng chính
     const cropStructure = await FarmCrop.aggregate([
@@ -184,6 +189,8 @@ export const getOwnerStatistics = async (req: Request, res: Response): Promise<v
       data: {
         totalSubAccounts,
         totalFarms,
+        totalProductionLogs,
+        totalFarmTypes,
         totalArea: { value: totalAreaValue, unit: 'ha' },
         cropStructure,
         activeRate: parseFloat(activeRate.toFixed(2)),

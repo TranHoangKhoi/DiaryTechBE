@@ -44,10 +44,10 @@ export const createFarm = async (req: Request, res: Response): Promise<void> => 
       polygonData = polygonData.features?.[0]?.geometry;
     }
 
-    if (!polygonData || polygonData.type !== 'Polygon') {
-      res.status(400).json({ message: 'Polygon không hợp lệ' });
-      return;
-    }
+    // if (!polygonData || polygonData.type !== 'Polygon') {
+    //   res.status(400).json({ message: 'Polygon không hợp lệ' });
+    //   return;
+    // }
 
     if (!ownerId) {
       res.status(401).json({ message: 'User không hợp lệ' });
