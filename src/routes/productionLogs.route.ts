@@ -8,18 +8,25 @@ import {
   getRecentActivities,
   getRecentProductionLogs
 } from '../controllers/productionLogs.controller';
-import { auth } from '../middleware/auth.midleware';
+import { MODULE_KEYS } from '~/constants/moduleKeys';
+import { auth, checkRole, requireModuleAccess } from '../middleware/auth.midleware';
 
 const router = express.Router();
 
 // Public routes
-router.post('/', auth, createProductionLog);
-router.get('/', getProductionLogsByActivityAndFarm);
-router.get('/farm/:farm_id', auth, getProductionLogsByFarm);
-router.get('/recent', auth, getRecentProductionLogs);
-router.get('/owner', auth, getOwnerProductionLogs);
-router.get('/owner/logs/recent', auth, getRecentActivities);
-router.get('/:id', getProductionLogsByID);
+router.post('/', auth, requireModuleAccess(MODULE_KEYS.farmDiary), createProductionLog);
+router.get('/', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByActivityAndFarm);
+router.get('/farm/:farm_id', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByFarm);
+router.get('/recent', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getRecentProductionLogs);
+router.get('/owner', auth, checkRole('owner'), requireModuleAccess(MODULE_KEYS.farmDiary), getOwnerProductionLogs);
+router.get(
+  '/owner/logs/recent',
+  auth,
+  checkRole('owner'),
+  requireModuleAccess(MODULE_KEYS.farmDiary),
+  getRecentActivities
+);
+router.get('/:id', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByID);
 
 //
 

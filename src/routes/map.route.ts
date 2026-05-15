@@ -7,11 +7,12 @@ import {
   handleConvertAddress,
   searchProvinces
 } from '~/controllers/map.controller';
-import { auth, optionalAuth } from '../middleware/auth.midleware';
+import { MODULE_KEYS } from '~/constants/moduleKeys';
+import { auth, requireModuleAccess } from '../middleware/auth.midleware';
 
 const router = express.Router();
-router.get('/getFarm', optionalAuth, getAllFarmsMap);
-router.get('/getFarm/:farmId', optionalAuth, getFarmDetail);
+router.get('/getFarm', getAllFarmsMap);
+router.get('/getFarm/:farmId', getFarmDetail);
 router.get('/convertAddress', handleConvertAddress);
 router.get('/provinces', getProvinces);
 router.get('/wards', getWardsByProvince);

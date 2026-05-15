@@ -4,6 +4,7 @@ import { VietnamAddressConverter } from '../addressConvert/VietnamAddressConvert
 
 import path from 'path';
 import mongoose from 'mongoose';
+import { assertFarmAccess } from '~/services/farmAccess.service';
 
 // export const getAllFarmsMap = async (req: Request, res: Response) => {
 //   try {
@@ -41,9 +42,17 @@ export const getAllFarmsMap = async (req: Request, res: Response) => {
     }
 
     // Lọc theo owner_id nếu có trong query hoặc từ token (nếu là owner)
-    const effectiveOwnerId = owner_id || (req.user?.role === 'owner' ? req.user.id : null);
-    if (effectiveOwnerId && mongoose.Types.ObjectId.isValid(effectiveOwnerId as string)) {
-      match.owner_id = new mongoose.Types.ObjectId(effectiveOwnerId as string);
+    if (req.user?.role === 'superadmin' || req.user?.role === 'admin') {
+      if (owner_id && mongoose.Types.ObjectId.isValid(owner_id as string)) {
+        match.owner_id = new mongoose.Types.ObjectId(owner_id as string);
+      }
+    } else if (req.user?.role === 'owner') {
+      match.owner_id = new mongoose.Types.ObjectId(req.user.id);
+    } else if (req.user?.role === 'sub_account') {
+      match.user_id = new mongoose.Types.ObjectId(req.user.id);
+      if (req.user.ownerId && mongoose.Types.ObjectId.isValid(req.user.ownerId)) {
+        match.owner_id = new mongoose.Types.ObjectId(req.user.ownerId);
+      }
     }
 
     const farms = await FarmModel.aggregate([
@@ -198,6 +207,13 @@ export const getFarmDetail = async (req: Request, res: Response) => {
     }
 
     const farmObjectId = new mongoose.Types.ObjectId(farmId);
+    // const farmAccess = await assertFarmAccess(req.user, farmId);
+    // console.log('Farm access check:', farmAccess);
+
+    // if (!farmAccess.ok) {
+    //   res.status(farmAccess.status).json({ message: farmAccess.message });
+    //   return;
+    // }
 
     const [farm] = await FarmModel.aggregate([
       // ===== MATCH =====
@@ -451,6 +467,8 @@ export const getFarmDetail = async (req: Request, res: Response) => {
         }
       }
     ]);
+
+    console.log('Farm detail:', farm);
 
     if (!farm) {
       res.status(404).json({ message: 'Farm not found' });

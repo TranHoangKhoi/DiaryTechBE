@@ -1,5 +1,6 @@
 import mongoose, { Document } from 'mongoose';
 import bcrypt from 'bcrypt';
+import { MODULE_KEY_VALUES, ModuleKey } from '~/constants/moduleKeys';
 
 export interface IUser extends Document {
   phone: string;
@@ -11,6 +12,7 @@ export interface IUser extends Document {
   gender: number;
   role: 'superadmin' | 'admin' | 'owner' | 'sub_account';
   owner_id?: mongoose.Types.ObjectId; // nếu là sub_account
+  allowed_modules?: ModuleKey[];
   status: 'active' | 'inactive' | 'suspended';
   last_login?: Date;
   created_at: Date;
@@ -33,10 +35,23 @@ const UserSchema = new mongoose.Schema<IUser>({
   gender: { type: Number, default: 1 },
   role: { type: String, enum: listRole, required: true, default: 'owner' },
   owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // nếu sub_account
+  allowed_modules: [{ type: String, enum: MODULE_KEY_VALUES }],
   status: { type: String, enum: listStatus, default: 'active' },
   last_login: { type: Date, default: Date.now },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
+});
+
+UserSchema.pre<IUser>('validate', function (next) {
+  if (this.role === 'sub_account' && !this.owner_id) {
+    this.invalidate('owner_id', 'owner_id is required for sub_account');
+  }
+
+  if (this.role !== 'sub_account' && this.allowed_modules && this.allowed_modules.length > 0) {
+    this.invalidate('allowed_modules', 'allowed_modules is only supported for sub_account');
+  }
+
+  next();
 });
 
 // Middleware hash mật khẩu
@@ -53,6 +68,7 @@ UserSchema.methods.comparePassword = async function (password: string): Promise<
 
 // UserSchema.index({ phone: 1 }, { unique: true }); // index này đã được tạo tự động bởi { unique: true } ở trên
 UserSchema.index({ owner_id: 1 }); // khi load sub-account theo chủ
+UserSchema.index({ allowed_modules: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ status: 1 });
 UserSchema.index({ created_at: -1 }); // sort nhanh theo ngày tạo

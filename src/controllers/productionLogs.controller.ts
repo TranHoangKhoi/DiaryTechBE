@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import { default as ProductionLogs, default as ProductionLogsModel } from '~/models/ProductionLogs.model';
+import { assertFarmAccess, getFarmAccessCondition } from '~/services/farmAccess.service';
 
 // Schema cho chemical_usages
 const chemicalUsageSchema = z.object({
@@ -36,6 +37,15 @@ export const createProductionLog = async (req: Request, res: Response) => {
     const { farm_id, activity_id, data, chemical_usages, notes, date, book_id } = req.body;
 
     const userId = req.user?.id;
+    const farmAccess = await assertFarmAccess(req.user, farm_id);
+    if (!farmAccess.ok) {
+      res.status(farmAccess.status).json({
+        success: false,
+        message: farmAccess.message
+      });
+      return;
+    }
+
     const newProductionLog = new ProductionLogsModel({
       farm_id,
       activity_id,
@@ -74,6 +84,15 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
       res.status(400).json({
         success: false,
         message: 'Thiếu farm_id'
+      });
+      return;
+    }
+
+    const farmAccess = await assertFarmAccess(req.user, farm_id);
+    if (!farmAccess.ok) {
+      res.status(farmAccess.status).json({
+        success: false,
+        message: farmAccess.message
       });
       return;
     }
@@ -204,6 +223,18 @@ export const getProductionLogsByID = async (req: Request, res: Response): Promis
       return;
     }
 
+    const baseLog = await ProductionLogsModel.findById(id).select('farm_id');
+    if (!baseLog) {
+      res.status(404).json({ success: false, message: 'KhÃ´ng tÃ¬m tháº¥y nháº­t kÃ½ sáº£n xuáº¥t' });
+      return;
+    }
+
+    const farmAccess = await assertFarmAccess(req.user, String(baseLog.farm_id));
+    if (!farmAccess.ok) {
+      res.status(farmAccess.status).json({ success: false, message: farmAccess.message });
+      return;
+    }
+
     const productionLog = await ProductionLogsModel.findById(id)
       .populate({
         path: 'activity_id',
@@ -273,6 +304,14 @@ export const getProductionLogsByActivityAndFarm = async (req: Request, res: Resp
     }
 
     // Chuyển đổi thành ObjectId (nếu cần)
+    const farmAccess = await assertFarmAccess(req.user, farm_id as string);
+    if (!farmAccess.ok) {
+      res.status(farmAccess.status).json({
+        message: farmAccess.message
+      });
+      return;
+    }
+
     const activityId = new mongoose.Types.ObjectId(activity_id as string);
     const farmId = new mongoose.Types.ObjectId(farm_id as string);
 
@@ -324,10 +363,19 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
         });
         return;
       }
+      const farmAccess = await assertFarmAccess(req.user, farm_id as string);
+      if (!farmAccess.ok) {
+        res.status(farmAccess.status).json({
+          success: false,
+          message: farmAccess.message
+        });
+        return;
+      }
+
       query.farm_id = new mongoose.Types.ObjectId(farm_id as string);
-    } else if (req.user?.role === 'owner') {
+    } else if (req.user?.role === 'owner' || req.user?.role === 'sub_account') {
       // Nếu là owner và không truyền farm_id, lấy log của tất cả farm thuộc owner này
-      const farms = await mongoose.model('Farm').find({ owner_id: req.user.id }).select('_id');
+      const farms = await mongoose.model('Farm').find(getFarmAccessCondition(req.user) ?? {}).select('_id');
       const farmIds = farms.map((f) => f._id);
       if (farmIds.length === 0) {
         res.status(200).json({ success: true, data: [] });
@@ -337,7 +385,7 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
     } else {
       res.status(400).json({
         success: false,
-        message: 'Thiếu farm_id hoặc bạn không phải là owner'
+        message: 'Thiếu farm_id hoặc bạn không có quyền truy cập'
       });
       return;
     }

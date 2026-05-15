@@ -1,40 +1,32 @@
-import User from '../models/User.model';
 import jwt from 'jsonwebtoken';
-import { z } from 'zod';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 import { Request, Response } from 'express';
-import UserSubscriptionModel from '~/models/UserSubscription.model';
+import { z } from 'zod';
+import User from '../models/User.model';
+import {
+  getAccessContextByUserId,
+  getActiveModuleKeysByOwnerId,
+  getVisibleSubscriptionsByUserId,
+  isAllowedModuleSubset,
+  normalizeAllowedModules
+} from '~/services/subscriptionAccess.service';
 
-const farmSchema = z.object({
-  farm_name: z.string().min(1, { message: 'Tên trang trại là bắt buộc' }),
-  location: z.string().min(1, { message: 'Vị trí trang trại là bắt buộc' }),
-  farm_type_id: z.string().regex(/^[0-9a-fA-F]{24}$/, { message: 'farm_type_id phải là ObjectId hợp lệ' }), // Kiểm tra ObjectId
-  geo_location: z.string().optional(),
-  area: z.number().positive({ message: 'Diện tích phải là số dương' }),
-  province: z.number().positive({ message: 'ID tỉnh thành phải là số dương' }),
-  district: z.number().positive({ message: 'ID quận huyện phải là số dương' }),
-  ward: z.number().positive({ message: 'ID phương xã phải là số dương' }),
-  soil_type: z.string().optional(),
-  farm_status: z.enum(['active', 'inactive', 'under_maintenance']).default('active'),
-  description: z.string().optional()
-});
-
-// Schema validation chính cho register
 const registerSchema = z.object({
   phone: z
     .string()
-    .min(10, { message: 'Số điện thoại phải có ít nhất 10 chữ số' })
-    .max(10, { message: 'Số điện thoại không được vượt quá 10 chữ số' }),
-  password: z.string().min(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' }),
-  name: z.string().min(1, { message: 'Tên là bắt buộc' }),
+    .min(10, { message: 'Sá»‘ Ä‘iá»‡n thoáº¡i pháº£i cÃ³ Ã­t nháº¥t 10 chá»¯ sá»‘' })
+    .max(10, { message: 'Sá»‘ Ä‘iá»‡n thoáº¡i khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 10 chá»¯ sá»‘' }),
+  password: z.string().min(6, { message: 'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±' }),
+  name: z.string().min(1, { message: 'TÃªn lÃ  báº¯t buá»™c' }),
   des: z.string().optional(),
-  address: z.string().min(1, { message: 'Địa chỉ là bắt buộc' }),
-  gender: z.number().min(1, { message: 'Giới tính là nam hoặc nữ' }),
-  role: z.enum(['sub_account', 'owner', 'admin'], { message: 'Vai trò chưa phù hợp' }),
+  address: z.string().min(1, { message: 'Äá»‹a chá»‰ lÃ  báº¯t buá»™c' }),
+  gender: z.number().min(1, { message: 'Giá»›i tÃ­nh lÃ  nam hoáº·c ná»¯' }),
+  role: z.enum(['sub_account', 'owner'], { message: 'Vai trÃ² chÆ°a phÃ¹ há»£p' }),
   owner_id: z
     .string()
-    .regex(/^[0-9a-fA-F]{24}$/, { message: 'owner_id phải là ObjectId hợp lệ' })
-    .optional()
+    .regex(/^[0-9a-fA-F]{24}$/, { message: 'owner_id pháº£i lÃ  ObjectId há»£p lá»‡' })
+    .optional(),
+  allowed_modules: z.array(z.enum(['farm_diary', 'agri_map', 'trace_origin'])).optional().default([])
 });
 
 const loginSchema = z.object({
@@ -42,38 +34,152 @@ const loginSchema = z.object({
   password: z.string().min(6)
 });
 
+const buildToken = (userId: string) =>
+  jwt.sign({ id: userId }, process.env.JWT_SECRET as string, {
+    expiresIn: '1y'
+  });
+
+const buildAuthResponse = async (userId: string) => {
+  const [user, accessContext, subscriptions] = await Promise.all([
+    User.findById(userId).select('-password'),
+    getAccessContextByUserId(userId),
+    getVisibleSubscriptionsByUserId(userId)
+  ]);
+
+  if (!user || !accessContext) {
+    return null;
+  }
+
+  return {
+    user: {
+      ...user.toObject(),
+      accessible_modules: accessContext.accessibleModules,
+      subscriptions
+    }
+  };
+};
+
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { password, name, role, address, phone, owner_id, gender, des } = registerSchema.parse(req.body);
+    const { password, name, role, address, phone, owner_id, gender, des, allowed_modules } = registerSchema.parse(
+      req.body
+    );
 
-    let user = await User.findOne({ phone });
-
-    if (user) {
+    const existedUser = await User.findOne({ phone });
+    if (existedUser) {
       res.status(400).json({ message: 'User already exists' });
       return;
     }
 
-    let avatar = '';
-    if (gender) {
-      avatar =
-        gender === 1
-          ? 'https://res.cloudinary.com/delix6nht/image/upload/v1755744492/1_wlrjjb.png'
-          : 'https://res.cloudinary.com/delix6nht/image/upload/v1755744493/2_giyotm.png';
-    }
-    user = new User({ password, name, role, address, phone, owner_id, gender, avatar, des });
-    await user.save();
+    let resolvedOwnerId: string | undefined;
+    let normalizedAllowedModules: string[] = [];
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET as string, {
-      expiresIn: '1y'
+    if (role === 'owner') {
+      if (owner_id) {
+        res.status(400).json({ message: 'owner_id is not allowed for owner account' });
+        return;
+      }
+    }
+
+    if (role === 'sub_account') {
+      if (!req.user || !['owner', 'superadmin'].includes(req.user.role)) {
+      res.status(403).json({ message: 'Only owner or superadmin can create sub_account' });
+        return;
+      }
+
+      if (!owner_id) {
+      res.status(400).json({ message: 'owner_id is required for sub_account' });
+        return;
+      }
+
+      resolvedOwnerId = req.user.role === 'owner' ? req.user.id : owner_id;
+      if (req.user.role === 'owner' && owner_id !== req.user.id) {
+        res.status(403).json({ message: 'You can only create sub_account for your own owner account' });
+        return;
+      }
+
+      if (!resolvedOwnerId) {
+        res.status(400).json({ message: 'owner_id is required for sub_account' });
+        return;
+      }
+
+      const owner = await User.findById(resolvedOwnerId).select('_id role status');
+      if (!owner || owner.role !== 'owner') {
+        res.status(404).json({ message: 'Owner not found' });
+        return;
+      }
+
+      if (owner.status !== 'active') {
+        res.status(400).json({ message: 'Owner is not active' });
+        return;
+      }
+
+      const ownerModules = await getActiveModuleKeysByOwnerId(resolvedOwnerId);
+      if (!ownerModules.length) {
+        res.status(400).json({ message: 'Owner has no active module subscription' });
+        return;
+      }
+
+      if (allowed_modules.length > 0 && !isAllowedModuleSubset(allowed_modules, ownerModules)) {
+        res.status(400).json({ message: 'allowed_modules must be a subset of owner active modules' });
+        return;
+      }
+
+      normalizedAllowedModules = allowed_modules.length > 0 ? normalizeAllowedModules(allowed_modules) : ownerModules;
+    }
+
+    const avatar =
+      gender === 1
+        ? 'https://res.cloudinary.com/delix6nht/image/upload/v1755744492/1_wlrjjb.png'
+        : 'https://res.cloudinary.com/delix6nht/image/upload/v1755744493/2_giyotm.png';
+
+    const user = new User({
+      password,
+      name,
+      role,
+      address,
+      phone,
+      owner_id: resolvedOwnerId,
+      allowed_modules: role === 'sub_account' ? normalizedAllowedModules : undefined,
+      gender,
+      avatar,
+      des
     });
 
-    res.status(201).json({ token, user: { id: user._id, phone: user.phone, role: user.role } });
+    await user.save();
+
+    if (req.user) {
+      res.status(201).json({
+        success: true,
+        message: 'User created successfully',
+        data: {
+          id: user._id,
+          phone: user.phone,
+          role: user.role,
+          owner_id: user.owner_id,
+          allowed_modules: user.allowed_modules ?? []
+        }
+      });
+      return;
+    }
+
+    const token = buildToken(String(user._id));
+    const payload = await buildAuthResponse(String(user._id));
+    if (!payload) {
+      res.status(500).json({ message: 'Server error' });
+      return;
+    }
+
+    res.status(201).json({
+      token,
+      ...payload
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ message: 'Validation error', errors: error.errors });
     } else {
       console.log(error);
-      res.status(500).json({ message: error });
+      res.status(500).json({ message: 'Server error' });
     }
   }
 };
@@ -81,27 +187,32 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone, password } = loginSchema.parse(req.body);
-    console.log(req.body);
-
     const user = await User.findOne({ phone });
 
     if (!user) {
-      res.status(400).json({ message: 'Tên đăng nhập hoặc mật khẩu không đúng !' });
+      res.status(400).json({ message: 'TÃªn Ä‘Äƒng nháº­p hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng !' });
+      return;
+    }
+
+    if (user.status !== 'active') {
+      res.status(403).json({ message: 'TÃ i khoáº£n khÃ´ng hoáº¡t Ä‘á»™ng' });
       return;
     }
 
     const isMatch = await user.comparePassword(password);
-
     if (!isMatch) {
-      console.log('Phone: ', phone);
-      res.status(400).json({ message: 'Tên đăng nhập hoặc mật khẩu không đúng !' });
+      res.status(400).json({ message: 'TÃªn Ä‘Äƒng nháº­p hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng !' });
       return;
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET as string, {
-      expiresIn: '1y'
-    });
-    res.json({ token, user: { id: user._id, phone: user.phone, role: user.role } });
+    const token = buildToken(String(user._id));
+    const payload = await buildAuthResponse(String(user._id));
+    if (!payload) {
+      res.status(500).json({ message: 'Server error' });
+      return;
+    }
+
+    res.json({ token, ...payload });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ message: 'Validation error', errors: error.errors });
@@ -113,30 +224,22 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Lấy thông tin user
-    const user = await User.findById(req.user?.id).select('-password');
-    if (!user) {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const payload = await buildAuthResponse(userId);
+    if (!payload) {
       res.status(404).json({ success: false, message: 'User not found' });
       return;
     }
 
-    // Lấy danh sách gói thuê bao của user
-    const subscriptions = await UserSubscriptionModel.find({ user_id: user._id })
-      .populate('module_id', 'key name description')
-      .populate('package_id', 'name max_sub_accounts price_per_month duration_in_days');
-
-    // Gộp subscriptions vào user object
-    const userWithSubs = {
-      ...user.toObject(),
-      subscriptions // thêm danh sách thuê bao vào user
-    };
-
     res.json({
       success: true,
-      message: 'Lấy thông tin người dùng thành công.',
-      data: {
-        user: userWithSubs
-      }
+      message: 'Láº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng.',
+      data: payload
     });
   } catch (error) {
     console.error(error);
@@ -149,39 +252,25 @@ export const getUserProfileByAdmin = async (req: Request, res: Response): Promis
     const userId = req.params.userId;
 
     if (!userId) {
-      res.status(400).json({ success: false, message: 'Thiếu userId' });
+      res.status(400).json({ success: false, message: 'Thiáº¿u userId' });
       return;
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      res.status(400).json({ success: false, message: 'userId không hợp lệ' });
+      res.status(400).json({ success: false, message: 'userId khÃ´ng há»£p lá»‡' });
       return;
     }
 
-    // Lấy thông tin user theo userId truyền xuống
-    const user = await User.findById(userId).select('-password');
-    if (!user) {
-      res.status(404).json({ success: false, message: 'Không tìm thấy user' });
+    const payload = await buildAuthResponse(userId);
+    if (!payload) {
+      res.status(404).json({ success: false, message: 'KhÃ´ng tÃ¬m tháº¥y user' });
       return;
     }
-
-    // Lấy danh sách gói thuê bao của user
-    const subscriptions = await UserSubscriptionModel.find({ user_id: user._id })
-      .populate('module_id', 'key name description')
-      .populate('package_id', 'name max_sub_accounts price_per_month duration_in_days');
-
-    // Gộp lại đúng format như API gốc
-    const userWithSubs = {
-      ...user.toObject(),
-      subscriptions
-    };
 
     res.json({
       success: true,
-      message: 'Lấy thông tin người dùng thành công.',
-      data: {
-        user: userWithSubs
-      }
+      message: 'Láº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng.',
+      data: payload
     });
   } catch (error) {
     console.error(error);

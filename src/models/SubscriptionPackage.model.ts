@@ -4,25 +4,31 @@ import mongoose, { Document } from 'mongoose';
 
 export interface ISubscriptionPackage extends Document {
   module_id: mongoose.Types.ObjectId; // liên kết đến ServiceModule
+  code: string;
   name: string; // Gói Basic / Pro / Enterprise
   max_sub_accounts: number;
   price_per_month: number;
   duration_in_days: number; // ví dụ 30, 90, 365
   description?: string;
+  is_active: boolean;
 }
 
 const SubscriptionPackageSchema = new mongoose.Schema({
   module_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceModule', required: true },
+  code: { type: String, required: true, uppercase: true, trim: true },
   name: { type: String, required: true },
   max_sub_accounts: { type: Number, default: 1 },
   price_per_month: { type: Number, required: true },
   duration_in_days: { type: Number, required: true },
-  description: { type: String }
+  description: { type: String },
+  is_active: { type: Boolean, default: true }
 });
 
 SubscriptionPackageSchema.index({ module_id: 1 });
+SubscriptionPackageSchema.index({ module_id: 1, code: 1 }, { unique: true });
 SubscriptionPackageSchema.index({ name: 1 });
 SubscriptionPackageSchema.index({ price_per_month: 1 });
 SubscriptionPackageSchema.index({ duration_in_days: 1 });
+SubscriptionPackageSchema.index({ is_active: 1 });
 
 export default mongoose.model<ISubscriptionPackage>('SubscriptionPackage', SubscriptionPackageSchema);

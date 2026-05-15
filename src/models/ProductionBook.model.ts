@@ -8,10 +8,11 @@ export interface IProductionBook extends Document {
   production: string;
   image: string;
   start_date: Date;
-  end_date?: Date;
+  end_date?: Date | null;
   status: 'ongoing' | 'completed';
   created_by: mongoose.Types.ObjectId;
   general_info?: Record<string, any>;
+  deleted_at?: Date | null;
 }
 
 const ProductionBookSchema = new mongoose.Schema<IProductionBook>(
@@ -26,7 +27,8 @@ const ProductionBookSchema = new mongoose.Schema<IProductionBook>(
     end_date: { type: Date },
     status: { type: String, enum: ['ongoing', 'completed'], default: 'ongoing' },
     created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    general_info: { type: mongoose.Schema.Types.Mixed, default: {} }
+    general_info: { type: mongoose.Schema.Types.Mixed, default: {} },
+    deleted_at: { type: Date, default: null }
   },
   { timestamps: true }
 );
@@ -35,5 +37,6 @@ const ProductionBookSchema = new mongoose.Schema<IProductionBook>(
 ProductionBookSchema.index({ farm_id: 1, status: 1 });
 ProductionBookSchema.index({ created_by: 1 });
 ProductionBookSchema.index({ start_date: -1 });
+ProductionBookSchema.index({ deleted_at: 1 });
 
 export default mongoose.model<IProductionBook>('ProductionBook', ProductionBookSchema);
