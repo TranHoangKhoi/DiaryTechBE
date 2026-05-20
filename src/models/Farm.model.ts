@@ -24,6 +24,7 @@ interface IWard {
 export interface IFarm extends Document {
   owner_id: mongoose.Types.ObjectId;
   user_id: mongoose.Types.ObjectId;
+  tenant_id?: mongoose.Types.ObjectId | null;
   farm_name: string;
   location: string;
   farm_type_id: mongoose.Types.ObjectId;
@@ -78,6 +79,7 @@ const ProvinceSchema = new mongoose.Schema<IProvince>(
 const FarmSchema = new mongoose.Schema<IFarm>({
   owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  tenant_id: { type: mongoose.Schema.Types.ObjectId, ref: 'MapTenant', default: null },
   farm_name: { type: String, required: true },
   location: { type: String, required: false, default: '' },
   farm_type_id: {
@@ -113,6 +115,8 @@ const FarmSchema = new mongoose.Schema<IFarm>({
 
 FarmSchema.index({ owner_id: 1 });
 FarmSchema.index({ user_id: 1 });
+FarmSchema.index({ tenant_id: 1 });
+FarmSchema.index({ tenant_id: 1, farm_status: 1 });
 FarmSchema.index({ farm_type_id: 1 });
 FarmSchema.index({ created_at: -1 });
 FarmSchema.index({ farm_status: 1 });

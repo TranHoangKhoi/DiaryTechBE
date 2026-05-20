@@ -18,6 +18,15 @@ const registerSchema = z.object({
   address: z.string()
 });
 
+const registerOwnerSchema = z.object({
+  phone: z.string().min(10).max(10),
+  password: z.string().min(6),
+  name: z.string().min(1),
+  address: z.string().min(1),
+  gender: z.number().min(1).default(1),
+  des: z.string().optional()
+});
+
 export const getFarmer = async (req: Request, res: Response) => {
   try {
     const ownerId = req?.user?.id;
@@ -204,5 +213,59 @@ export const getOwnerStatistics = async (req: Request, res: Response): Promise<v
   } catch (error) {
     console.error('Error fetching owner statistics:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error });
+  }
+};
+
+export const registerOwner = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'superadmin') {
+      res.status(403).json({ success: false, message: 'Only superadmin can create owner accounts' });
+      return;
+    }
+
+    const { phone, password, name, address, gender, des } = registerOwnerSchema.parse(req.body);
+
+    const existedUser = await User.findOne({ phone });
+    if (existedUser) {
+      res.status(400).json({ success: false, message: 'User already exists' });
+      return;
+    }
+
+    const avatar =
+      gender === 1
+        ? 'https://res.cloudinary.com/delix6nht/image/upload/v1755744492/1_wlrjjb.png'
+        : 'https://res.cloudinary.com/delix6nht/image/upload/v1755744493/2_giyotm.png';
+
+    const user = new User({
+      password,
+      name,
+      role: 'owner',
+      address,
+      phone,
+      gender,
+      avatar,
+      des
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Owner account created successfully',
+      data: {
+        id: user._id,
+        phone: user.phone,
+        role: user.role,
+        status: user.status
+      }
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, message: 'Validation error', errors: error.errors });
+      return;
+    }
+
+    console.error('Error creating owner account:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

@@ -1,12 +1,16 @@
 import express from 'express';
 import {
   createProductionLog,
+  deleteManageProductionLog,
+  getManageProductionLogById,
+  getManageProductionLogs,
   getOwnerProductionLogs,
   getProductionLogsByActivityAndFarm,
   getProductionLogsByFarm,
   getProductionLogsByID,
   getRecentActivities,
-  getRecentProductionLogs
+  getRecentProductionLogs,
+  updateManageProductionLog
 } from '../controllers/productionLogs.controller';
 import { MODULE_KEYS } from '~/constants/moduleKeys';
 import { auth, checkRole, requireModuleAccess } from '../middleware/auth.midleware';
@@ -14,6 +18,11 @@ import { auth, checkRole, requireModuleAccess } from '../middleware/auth.midlewa
 const router = express.Router();
 
 // Public routes
+router.get('/manage', auth, checkRole('superadmin'), getManageProductionLogs);
+router.get('/manage/:id', auth, checkRole('superadmin'), getManageProductionLogById);
+router.patch('/manage/:id', auth, checkRole('superadmin'), updateManageProductionLog);
+router.delete('/manage/:id', auth, checkRole('superadmin'), deleteManageProductionLog);
+
 router.post('/', auth, requireModuleAccess(MODULE_KEYS.farmDiary), createProductionLog);
 router.get('/', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByActivityAndFarm);
 router.get('/farm/:farm_id', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByFarm);

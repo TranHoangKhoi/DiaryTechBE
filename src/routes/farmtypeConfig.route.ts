@@ -1,16 +1,22 @@
 import express from 'express';
-import { createFarmTypeConfig, getFarmTypeConfigByFarmTypeId } from '~/controllers/farmtypeConfig.controller';
+import {
+  createFarmTypeConfig,
+  deleteFarmTypeConfig,
+  getAllFarmTypeConfigs,
+  getFarmTypeConfigByFarmTypeId,
+  getFarmTypeConfigById,
+  updateFarmTypeConfig
+} from '~/controllers/farmtypeConfig.controller';
 import { auth, checkRole } from '../middleware/auth.midleware';
 
 const router = express.Router();
 
-// Public routes
+router.get('/', auth, checkRole('superadmin'), getAllFarmTypeConfigs);
 router.post('/', auth, checkRole('superadmin'), createFarmTypeConfig);
-router.get('/:farm_type_id', auth, getFarmTypeConfigByFarmTypeId);
+router.get('/manage/:id', auth, checkRole('superadmin'), getFarmTypeConfigById);
+router.patch('/manage/:id', auth, checkRole('superadmin'), updateFarmTypeConfig);
+router.delete('/manage/:id', auth, checkRole('superadmin'), deleteFarmTypeConfig);
 
-// Admin-only route (ví dụ)
-router.get('/admin-only', auth, checkRole('admin'), (req, res) => {
-  res.json({ message: 'Welcome, Admin!' });
-});
+router.get('/:farm_type_id', auth, getFarmTypeConfigByFarmTypeId);
 
 export default router;

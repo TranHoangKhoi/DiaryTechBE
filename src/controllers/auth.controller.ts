@@ -7,8 +7,6 @@ import {
   getAccessContextByUserId,
   getActiveModuleKeysByOwnerId,
   getVisibleSubscriptionsByUserId,
-  isAllowedModuleSubset,
-  normalizeAllowedModules
 } from '~/services/subscriptionAccess.service';
 
 const registerSchema = z.object({
@@ -75,6 +73,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     let normalizedAllowedModules: string[] = [];
 
     if (role === 'owner') {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({ message: 'Only superadmin can create owner accounts' });
+        return;
+      }
+
       if (owner_id) {
         res.status(400).json({ message: 'owner_id is not allowed for owner account' });
         return;
@@ -120,12 +123,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      if (allowed_modules.length > 0 && !isAllowedModuleSubset(allowed_modules, ownerModules)) {
-        res.status(400).json({ message: 'allowed_modules must be a subset of owner active modules' });
-        return;
-      }
-
-      normalizedAllowedModules = allowed_modules.length > 0 ? normalizeAllowedModules(allowed_modules) : ownerModules;
+      normalizedAllowedModules = ownerModules;
     }
 
     const avatar =
@@ -150,15 +148,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (req.user) {
       res.status(201).json({
-        success: true,
-        message: 'User created successfully',
-        data: {
-          id: user._id,
-          phone: user.phone,
-          role: user.role,
-          owner_id: user.owner_id,
-          allowed_modules: user.allowed_modules ?? []
-        }
+      success: true,
+      message: 'User created successfully',
+      data: {
+        id: user._id,
+        phone: user.phone,
+        role: user.role,
+        owner_id: user.owner_id,
+        allowed_modules: user.allowed_modules ?? []
+      }
       });
       return;
     }

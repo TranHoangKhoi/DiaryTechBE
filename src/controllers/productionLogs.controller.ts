@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
+import ActivitiesModel from '~/models/Activities.model';
+import FarmModel from '~/models/Farm.model';
+import ProductionBookModel from '~/models/ProductionBook.model';
 import { default as ProductionLogs, default as ProductionLogsModel } from '~/models/ProductionLogs.model';
 import { assertFarmAccess, getFarmAccessCondition } from '~/services/farmAccess.service';
 
@@ -31,10 +34,118 @@ const productionLogSchema = z.object({
 // TypeScript type từ Zod schema
 export type ProductionLogInput = z.infer<typeof productionLogSchema>;
 
+const MAX_MANAGE_LIMIT = 100;
+
+const parsePositiveInt = (value: unknown, fallback: number, max = MAX_MANAGE_LIMIT) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (Number.isNaN(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, max);
+};
+
+const isValidObjectId = (value: unknown) => typeof value === 'string' && mongoose.Types.ObjectId.isValid(value);
+
+const parseDateValue = (value: unknown) => {
+  if (!value) return null;
+  const date = new Date(value as string);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getActivityFields = (activity: any) => (Array.isArray(activity?.fields) ? activity.fields : []);
+
+const isEmptyValue = (value: unknown) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
+};
+
+const validateLogDataByActivity = (data: unknown, activity: any) => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return { ok: false as const, message: 'data must be an object' };
+  }
+
+  const rawData = data as Record<string, unknown>;
+
+  for (const field of getActivityFields(activity)) {
+    const fieldName = field.field_name;
+    const value = rawData[fieldName];
+
+    if (field.is_required && isEmptyValue(value)) {
+      return { ok: false as const, message: `${fieldName} is required` };
+    }
+
+    if (isEmptyValue(value)) continue;
+
+    if (field.field_type === 'number' && Number.isNaN(Number(value))) {
+      return { ok: false as const, message: `${fieldName} must be a number` };
+    }
+
+    if (field.field_type === 'date' && Number.isNaN(Date.parse(String(value)))) {
+      return { ok: false as const, message: `${fieldName} must be a valid date` };
+    }
+
+    if (field.field_type === 'image') {
+      const isValidImageValue = Array.isArray(value) && value.every((item) => typeof item === 'string' && item.trim());
+      if (!isValidImageValue) {
+        return { ok: false as const, message: `${fieldName} must be an array of image urls` };
+      }
+    }
+
+    if (field.field_type === 'select' && Array.isArray(field.options) && field.options.length > 0) {
+      if (typeof value !== 'string' || !field.options.includes(value)) {
+        return { ok: false as const, message: `${fieldName} has invalid option` };
+      }
+    }
+  }
+
+  return { ok: true as const };
+};
+
+const assertLogRelations = async ({
+  farm_id,
+  activity_id,
+  book_id,
+  data
+}: {
+  farm_id: string;
+  activity_id: string;
+  book_id: string;
+  data: Record<string, unknown>;
+}) => {
+  if (!isValidObjectId(farm_id)) return { ok: false as const, status: 400, message: 'Invalid farm_id' };
+  if (!isValidObjectId(activity_id)) return { ok: false as const, status: 400, message: 'Invalid activity_id' };
+  if (!isValidObjectId(book_id)) return { ok: false as const, status: 400, message: 'Invalid book_id' };
+
+  const [farm, activity, book] = await Promise.all([
+    FarmModel.findById(farm_id).select('_id farm_type_id'),
+    ActivitiesModel.findById(activity_id).select('_id farm_type_id fields'),
+    ProductionBookModel.findById(book_id).select('_id farm_id farm_type_id deleted_at')
+  ]);
+
+  if (!farm) return { ok: false as const, status: 404, message: 'Farm not found' };
+  if (!activity) return { ok: false as const, status: 404, message: 'Activity not found' };
+  if (!book || book.deleted_at) return { ok: false as const, status: 404, message: 'Production book not found' };
+
+  if (String(activity.farm_type_id) !== String(farm.farm_type_id)) {
+    return { ok: false as const, status: 400, message: 'activity_id does not match farm_type_id' };
+  }
+
+  if (String(book.farm_id) !== String(farm._id)) {
+    return { ok: false as const, status: 400, message: 'book_id does not belong to farm_id' };
+  }
+
+  const dataValidation = validateLogDataByActivity(data, activity);
+  if (!dataValidation.ok) {
+    return { ok: false as const, status: 400, message: dataValidation.message };
+  }
+
+  return { ok: true as const, farm, activity, book };
+};
+
 // Hàm tạo mới ProductionLog
 export const createProductionLog = async (req: Request, res: Response) => {
   try {
-    const { farm_id, activity_id, data, chemical_usages, notes, date, book_id } = req.body;
+    const { farm_id, activity_id, data = {}, chemical_usages, notes, date, book_id } = req.body;
 
     const userId = req.user?.id;
     const farmAccess = await assertFarmAccess(req.user, farm_id);
@@ -46,13 +157,36 @@ export const createProductionLog = async (req: Request, res: Response) => {
       return;
     }
 
+    const dateValue = parseDateValue(date);
+    if (!dateValue) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid date'
+      });
+      return;
+    }
+
+    const relationValidation = await assertLogRelations({
+      farm_id,
+      activity_id,
+      book_id,
+      data
+    });
+    if (!relationValidation.ok) {
+      res.status(relationValidation.status).json({
+        success: false,
+        message: relationValidation.message
+      });
+      return;
+    }
+
     const newProductionLog = new ProductionLogsModel({
       farm_id,
       activity_id,
       data,
       chemical_usages,
       notes,
-      date,
+      date: dateValue,
       book_id,
       created_by: userId
     });
@@ -349,6 +483,259 @@ export const getProductionLogsByActivityAndFarm = async (req: Request, res: Resp
 };
 
 // Lấy ra hoạt động gần nhất
+export const getManageProductionLogs = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const {
+      farm_id,
+      farm_type_id,
+      owner_id,
+      farmer_id,
+      book_id,
+      activity_id,
+      start_date,
+      end_date,
+      search,
+      page = 1,
+      limit = 20
+    } = req.query;
+
+    const pageNumber = parsePositiveInt(page, 1);
+    const limitNumber = parsePositiveInt(limit, 20);
+    const skip = (pageNumber - 1) * limitNumber;
+    const filter: Record<string, any> = {};
+
+    if (book_id) {
+      if (!isValidObjectId(book_id)) {
+        res.status(400).json({ success: false, message: 'Invalid book_id' });
+        return;
+      }
+      filter.book_id = book_id;
+    }
+
+    if (activity_id) {
+      if (!isValidObjectId(activity_id)) {
+        res.status(400).json({ success: false, message: 'Invalid activity_id' });
+        return;
+      }
+      filter.activity_id = activity_id;
+    }
+
+    if (farm_id) {
+      if (!isValidObjectId(farm_id)) {
+        res.status(400).json({ success: false, message: 'Invalid farm_id' });
+        return;
+      }
+      filter.farm_id = farm_id;
+    } else if (farm_type_id || owner_id || farmer_id) {
+      const farmFilter: Record<string, any> = {};
+
+      if (farm_type_id) {
+        if (!isValidObjectId(farm_type_id)) {
+          res.status(400).json({ success: false, message: 'Invalid farm_type_id' });
+          return;
+        }
+        farmFilter.farm_type_id = farm_type_id;
+      }
+
+      if (owner_id) {
+        if (!isValidObjectId(owner_id)) {
+          res.status(400).json({ success: false, message: 'Invalid owner_id' });
+          return;
+        }
+        farmFilter.owner_id = owner_id;
+      }
+
+      if (farmer_id) {
+        if (!isValidObjectId(farmer_id)) {
+          res.status(400).json({ success: false, message: 'Invalid farmer_id' });
+          return;
+        }
+        farmFilter.user_id = farmer_id;
+      }
+
+      const farms = await FarmModel.find(farmFilter).select('_id').lean();
+      filter.farm_id = { $in: farms.map((farm) => farm._id) };
+    }
+
+    if (start_date || end_date) {
+      const dateFilter: Record<string, Date> = {};
+
+      if (start_date) {
+        const startDate = parseDateValue(start_date);
+        if (!startDate) {
+          res.status(400).json({ success: false, message: 'Invalid start_date' });
+          return;
+        }
+        startDate.setHours(0, 0, 0, 0);
+        dateFilter.$gte = startDate;
+      }
+
+      if (end_date) {
+        const endDate = parseDateValue(end_date);
+        if (!endDate) {
+          res.status(400).json({ success: false, message: 'Invalid end_date' });
+          return;
+        }
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter.$lte = endDate;
+      }
+
+      filter.date = dateFilter;
+    }
+
+    if (search && String(search).trim()) {
+      const escapedSearch = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [{ notes: { $regex: escapedSearch, $options: 'i' } }];
+    }
+
+    const [logs, total] = await Promise.all([
+      ProductionLogsModel.find(filter)
+        .populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id')
+        .populate('activity_id', 'activity_name image description fields farm_type_id')
+        .populate('created_by', 'name avatar role')
+        .populate('book_id', 'name production status start_date end_date')
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limitNumber),
+      ProductionLogsModel.countDocuments(filter)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: logs,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber)
+      }
+    });
+  } catch (error) {
+    console.error('Error getManageProductionLogs:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const getManageProductionLogById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({ success: false, message: 'Invalid production log id' });
+      return;
+    }
+
+    const log = await ProductionLogsModel.findById(id)
+      .populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id')
+      .populate('activity_id', 'activity_name image description fields farm_type_id')
+      .populate('created_by', 'name avatar role')
+      .populate('book_id', 'name production status start_date end_date farm_id farm_type_id');
+
+    if (!log) {
+      res.status(404).json({ success: false, message: 'Production log not found' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: log
+    });
+  } catch (error) {
+    console.error('Error getManageProductionLogById:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const updateManageProductionLog = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({ success: false, message: 'Invalid production log id' });
+      return;
+    }
+
+    const currentLog = await ProductionLogsModel.findById(id);
+    if (!currentLog) {
+      res.status(404).json({ success: false, message: 'Production log not found' });
+      return;
+    }
+
+    const nextFarmId = String(req.body.farm_id ?? currentLog.farm_id);
+    const nextActivityId = String(req.body.activity_id ?? currentLog.activity_id);
+    const nextBookId = String(req.body.book_id ?? currentLog.book_id);
+    const nextData = req.body.data ?? currentLog.data ?? {};
+    const relationValidation = await assertLogRelations({
+      farm_id: nextFarmId,
+      activity_id: nextActivityId,
+      book_id: nextBookId,
+      data: nextData
+    });
+
+    if (!relationValidation.ok) {
+      res.status(relationValidation.status).json({
+        success: false,
+        message: relationValidation.message
+      });
+      return;
+    }
+
+    if (req.body.date !== undefined) {
+      const nextDate = parseDateValue(req.body.date);
+      if (!nextDate) {
+        res.status(400).json({ success: false, message: 'Invalid date' });
+        return;
+      }
+      currentLog.date = nextDate;
+    }
+
+    currentLog.farm_id = new mongoose.Types.ObjectId(nextFarmId) as any;
+    currentLog.activity_id = new mongoose.Types.ObjectId(nextActivityId) as any;
+    currentLog.book_id = new mongoose.Types.ObjectId(nextBookId) as any;
+    currentLog.data = nextData as any;
+
+    if (req.body.notes !== undefined) currentLog.notes = req.body.notes;
+    currentLog.updated_at = new Date();
+
+    const savedLog = await currentLog.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Update production log successfully',
+      data: savedLog
+    });
+  } catch (error) {
+    console.error('Error updateManageProductionLog:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const deleteManageProductionLog = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({ success: false, message: 'Invalid production log id' });
+      return;
+    }
+
+    const deletedLog = await ProductionLogsModel.findByIdAndDelete(id);
+    if (!deletedLog) {
+      res.status(404).json({ success: false, message: 'Production log not found' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Delete production log successfully',
+      data: deletedLog
+    });
+  } catch (error) {
+    console.error('Error deleteManageProductionLog:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 export const getRecentProductionLogs = async (req: Request, res: Response) => {
   try {
     const { farm_id, limit, exclude_log_id } = req.query;

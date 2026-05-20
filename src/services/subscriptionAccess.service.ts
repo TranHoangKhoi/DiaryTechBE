@@ -21,13 +21,22 @@ type AccessUserRecord = {
 };
 
 const moduleKeySet = new Set<string>(MODULE_KEY_VALUES);
+const moduleAliasMap: Record<string, ModuleKey> = {
+  diary: 'farm_diary'
+};
 
 const toModuleKey = (value: unknown): ModuleKey | null => {
-  if (typeof value !== 'string' || !moduleKeySet.has(value)) {
+  if (typeof value !== 'string') {
     return null;
   }
 
-  return value as ModuleKey;
+  const normalizedValue = moduleAliasMap[value] ?? value;
+
+  if (!moduleKeySet.has(normalizedValue)) {
+    return null;
+  }
+
+  return normalizedValue as ModuleKey;
 };
 
 const uniqueModuleKeys = (values: unknown[]): ModuleKey[] => {
@@ -95,10 +104,7 @@ export const getAccessContextByUserId = async (userId: string, now = new Date())
   }
 
   const ownerModules = await getActiveModuleKeysByOwnerId(ownerId, now);
-  const accessibleModules =
-    user.role === 'sub_account' && allowedModules.length > 0
-      ? ownerModules.filter((moduleKey) => allowedModules.includes(moduleKey))
-      : ownerModules;
+  const accessibleModules = ownerModules;
 
   return {
     id: user._id.toString(),

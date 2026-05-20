@@ -3,9 +3,12 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import FarmModel from '../src/models/Farm.model';
+import MapTenantModel from '../src/models/MapTenant.model';
 import { farmHouseGeoJson } from './FakeData';
 
 dotenv.config({ path: path.join(__dirname, '../.env.local') });
+
+const DAT_DO_TENANT_SLUG = 'dat-do';
 
 const DAT_DO_PROVINCE = {
   id: '28',
@@ -128,10 +131,21 @@ async function main() {
   await mongoose.connect(uri);
   console.log('Connected DB');
 
+  const datDoTenant = await MapTenantModel.findOne({
+    slug: DAT_DO_TENANT_SLUG,
+    status: 'active'
+  })
+    .select('_id slug name')
+    .lean();
+
+  if (!datDoTenant) {
+    throw new Error(`Map tenant ${DAT_DO_TENANT_SLUG} not found`);
+  }
+
   const farmQuery = ownerId ? { owner_id: new mongoose.Types.ObjectId(ownerId) } : {};
   const farms = await FarmModel.find(farmQuery)
     .sort({ created_at: 1, _id: 1 })
-    .select('_id farm_name owner_id geo_location polygon province ward created_at')
+    .select('_id farm_name owner_id tenant_id geo_location polygon province ward created_at')
     .lean();
 
   const targetFarms = limit ? farms.slice(0, limit) : farms;
@@ -142,6 +156,7 @@ async function main() {
   console.log(`Farms selected: ${targetFarms.length}`);
   console.log(`Geo entries available: ${geoEntries.length}`);
   console.log(`Pairs to process: ${pairCount}`);
+  console.log(`Target tenant: ${datDoTenant.name} (${datDoTenant._id})`);
 
   if (!pairCount) {
     console.log('Không có farm nào để xử lý.');
@@ -157,6 +172,8 @@ async function main() {
       farm_id: farm._id.toString(),
       farm_name: farm.farm_name,
       source_geo_id: geo.sourceId,
+      current_tenant_id: farm.tenant_id?.toString?.() ?? null,
+      new_tenant_id: datDoTenant._id.toString(),
       new_geo_location: geo.point,
       new_polygon_points: geo.polygon.coordinates[0]?.length ?? 0,
       new_province: DAT_DO_PROVINCE.name,
@@ -185,6 +202,7 @@ async function main() {
             polygon: geo.polygon,
             province: DAT_DO_PROVINCE,
             ward: DAT_DO_WARD,
+            tenant_id: datDoTenant._id,
             updated_at: now
           }
         }

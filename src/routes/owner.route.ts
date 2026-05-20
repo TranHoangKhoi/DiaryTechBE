@@ -1,5 +1,5 @@
 import express from 'express';
-import { getFarmer, getFarmerById, getOwnerStatistics } from '../controllers/owner.controller';
+import { getFarmer, getFarmerById, getOwnerStatistics, registerOwner } from '../controllers/owner.controller';
 import { MODULE_KEY_VALUES } from '~/constants/moduleKeys';
 import { auth, checkRole, requireAnyModuleAccess } from '../middleware/auth.midleware';
 import { roleUser } from '~/config/constant';
@@ -18,6 +18,8 @@ router.get(
   requireAnyModuleAccess(MODULE_KEY_VALUES),
   getOwnerStatistics
 );
+
+router.post('/register', auth, checkRole('superadmin'), registerOwner);
 
 // Admin-only route (ví dụ)
 router.get('/admin-only', auth, checkRole('admin'), (req, res) => {

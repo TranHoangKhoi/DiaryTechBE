@@ -1,23 +1,23 @@
 import express from 'express';
 import {
   createActivity,
-  getAllActivityByIdType,
+  deleteActivity,
   getActivityById,
+  getAllActivityByIdType,
+  getManageActivities,
   updateActivities
 } from '../controllers/activity.controller';
 import { auth, checkRole } from '../middleware/auth.midleware';
 
 const router = express.Router();
 
-// Public routes
-router.post('/', auth, createActivity);
+router.get('/manage', auth, checkRole('superadmin'), getManageActivities);
+router.post('/', auth, checkRole('superadmin'), createActivity);
+router.patch('/manage/:id', auth, checkRole('superadmin'), updateActivities);
+router.put('/:id', auth, checkRole('superadmin'), updateActivities);
+router.delete('/manage/:id', auth, checkRole('superadmin'), deleteActivity);
+
 router.get('/farmtype/:id', auth, getAllActivityByIdType);
 router.get('/:id', auth, getActivityById);
-router.put('/:id', auth, updateActivities);
-
-// Admin-only route (ví dụ)
-router.get('/admin-only', auth, checkRole('admin'), (req, res) => {
-  res.json({ message: 'Welcome, Admin!' });
-});
 
 export default router;

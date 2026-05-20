@@ -222,6 +222,7 @@ const buildBaseFilter = (farmId: string) => ({
 });
 
 const serializeProductionBook = (book: any, latestLogCount?: number, serializedGeneralInfo?: unknown) => ({
+  _id: book._id?.toString?.() ?? book._id,
   id: book._id?.toString?.() ?? book._id,
   farm: book.farm_id
     ? {
@@ -295,6 +296,73 @@ const buildListQuery = ({ farmId, search, status }: { farmId: string; search?: s
   }
 
   return query;
+};
+
+const validateGeneralInfoByConfig = (generalInfo: unknown, config: any) => {
+  const generalInfoError = validateGeneralInfo(generalInfo);
+  if (generalInfoError) return generalInfoError;
+  if (generalInfo === undefined || !config?.sections?.length) return null;
+
+  const raw = generalInfo as Record<string, unknown>;
+
+  for (const section of config.sections) {
+    if (section.type === 'section') {
+      const sectionValue = isPlainObject(raw[section.key]) ? (raw[section.key] as Record<string, unknown>) : raw;
+
+      for (const field of section.fields ?? []) {
+        const value = sectionValue[field.key];
+        if (field.required && (value === undefined || value === null || String(value).trim() === '')) {
+          return `${field.label || field.key} is required`;
+        }
+      }
+      continue;
+    }
+
+    if (section.type === 'table') {
+      const rows = raw[section.key];
+      if (rows === undefined) continue;
+      if (!Array.isArray(rows)) return `${section.name || section.key} must be an array`;
+
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+        const row = rows[rowIndex];
+        if (!isPlainObject(row)) return `${section.name || section.key} row ${rowIndex + 1} must be an object`;
+
+        for (const column of section.columns ?? []) {
+          const value = row[column.key];
+          if (column.required && (value === undefined || value === null || String(value).trim() === '')) {
+            return `${column.label || column.key} is required at row ${rowIndex + 1}`;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+const getFarmAndConfig = async (farmId: string, farmTypeId: string) => {
+  if (!Types.ObjectId.isValid(farmId)) {
+    return { ok: false as const, status: 400, message: 'Invalid farm_id' };
+  }
+
+  if (!Types.ObjectId.isValid(farmTypeId)) {
+    return { ok: false as const, status: 400, message: 'Invalid farm_type_id' };
+  }
+
+  const [farm, farmTypeConfig] = await Promise.all([
+    FarmModel.findById(farmId).select('_id farm_name farm_type_id owner_id user_id'),
+    FarmTypeConfigModel.findOne({ farm_type_id: farmTypeId }).select('title description sections').lean()
+  ]);
+
+  if (!farm) {
+    return { ok: false as const, status: 404, message: 'Farm not found' };
+  }
+
+  if (String((farm as any).farm_type_id) !== String(farmTypeId)) {
+    return { ok: false as const, status: 400, message: 'farm_type_id does not match farm_id' };
+  }
+
+  return { ok: true as const, farm, farmTypeConfig };
 };
 
 export const createProductionBook = async (req: Request, res: Response) => {
@@ -657,6 +725,303 @@ export const softDeleteProductionBook = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error soft deleting production book:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const getManageProductionBooks = async (req: Request, res: Response) => {
+  try {
+    const farmId = typeof req.query.farm_id === 'string' ? req.query.farm_id.trim() : '';
+    const farmTypeId = typeof req.query.farm_type_id === 'string' ? req.query.farm_type_id.trim() : '';
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const status = typeof req.query.status === 'string' ? req.query.status.trim() : '';
+    const includeDeleted = req.query.include_deleted === 'true';
+    const page = parsePositiveInt(req.query.page, DEFAULT_PAGE);
+    const limit = parsePositiveInt(req.query.limit, DEFAULT_LIMIT);
+    const sort = typeof req.query.sort === 'string' && req.query.sort.toLowerCase() === 'asc' ? 1 : -1;
+
+    if (status && status !== 'all' && !allowedStatus.has(status)) {
+      res.status(400).json({ success: false, message: 'Invalid status' });
+      return;
+    }
+
+    const query: Record<string, any> = includeDeleted ? {} : { ...notDeletedFilter };
+
+    if (farmId) {
+      if (!Types.ObjectId.isValid(farmId)) {
+        res.status(400).json({ success: false, message: 'Invalid farm_id' });
+        return;
+      }
+      query.farm_id = farmId;
+    }
+
+    if (farmTypeId) {
+      if (!Types.ObjectId.isValid(farmTypeId)) {
+        res.status(400).json({ success: false, message: 'Invalid farm_type_id' });
+        return;
+      }
+      query.farm_type_id = farmTypeId;
+    }
+
+    if (search) {
+      const regex = new RegExp(escapeRegExp(search), 'i');
+      query.$or = [{ name: regex }, { production: regex }, { description: regex }];
+    }
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const total = await ProductionBookModel.countDocuments(query);
+    const books = await ProductionBookModel.find(query)
+      .populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id')
+      .populate('farm_type_id', 'type_name image description')
+      .populate('created_by', 'name avatar role')
+      .sort({ start_date: sort, createdAt: sort })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const logCountMap = await getLogCountsByBookIds(books.map((book) => String((book as any)._id)));
+
+    res.status(200).json({
+      success: true,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      data: books.map((book) => serializeProductionBook(book, logCountMap.get(String((book as any)._id))))
+    });
+  } catch (error) {
+    console.error('Error fetching manage production books:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const createManageProductionBook = async (req: Request, res: Response) => {
+  try {
+    const user = getUserContext(req);
+    const { name, description, production, image, start_date, end_date, general_info, farm_id, farm_type_id, status } =
+      req.body;
+
+    if (!user) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    if (!name || !production || !farm_id || !farm_type_id || !start_date) {
+      res.status(400).json({ success: false, message: 'Missing required fields' });
+      return;
+    }
+
+    if (!isValidDate(start_date)) {
+      res.status(400).json({ success: false, message: 'Invalid start_date' });
+      return;
+    }
+
+    if (end_date && !isValidDate(end_date)) {
+      res.status(400).json({ success: false, message: 'Invalid end_date' });
+      return;
+    }
+
+    if (status && !allowedStatus.has(status)) {
+      res.status(400).json({ success: false, message: 'Invalid status' });
+      return;
+    }
+
+    const farmAndConfig = await getFarmAndConfig(farm_id, farm_type_id);
+    if (!farmAndConfig.ok) {
+      res.status(farmAndConfig.status).json({ success: false, message: farmAndConfig.message });
+      return;
+    }
+
+    const generalInfoError = validateGeneralInfoByConfig(general_info, farmAndConfig.farmTypeConfig);
+    if (generalInfoError) {
+      res.status(400).json({ success: false, message: generalInfoError });
+      return;
+    }
+
+    const newBook = await ProductionBookModel.create({
+      name,
+      description,
+      production,
+      image: image || DEFAULT_IMAGE_URL,
+      start_date: parseDate(start_date),
+      end_date: end_date ? parseDate(end_date) : undefined,
+      general_info: general_info ?? {},
+      farm_id,
+      farm_type_id,
+      created_by: user.id,
+      status: status ?? 'ongoing'
+    });
+
+    await newBook.populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id');
+    await newBook.populate('farm_type_id', 'type_name image description');
+    await newBook.populate('created_by', 'name avatar role');
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...serializeProductionBook(newBook),
+        farm_type_config: farmAndConfig.farmTypeConfig ?? null
+      }
+    });
+  } catch (error) {
+    console.error('Error creating manage production book:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const getManageProductionBookById = async (req: Request, res: Response) => {
+  try {
+    const bookId = req.params.bookId;
+
+    if (!Types.ObjectId.isValid(bookId)) {
+      res.status(400).json({ success: false, message: 'Invalid bookId' });
+      return;
+    }
+
+    const book = await ProductionBookModel.findById(bookId);
+    if (!book) {
+      res.status(404).json({ success: false, message: 'Book not found' });
+      return;
+    }
+
+    await book.populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id');
+    await book.populate('farm_type_id', 'type_name image description');
+    await book.populate('created_by', 'name avatar role');
+
+    const farmTypeId = String((book.farm_type_id as any)?._id ?? book.farm_type_id);
+    const [latestLogCount, farmTypeConfig] = await Promise.all([
+      getLogCountByBookId(bookId),
+      FarmTypeConfigModel.findOne({ farm_type_id: farmTypeId }).select('title description sections').lean()
+    ]);
+
+    const groupedGeneralInfo = serializeGeneralInfoBySections(book.general_info ?? {}, farmTypeConfig);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...serializeProductionBook(book, latestLogCount, groupedGeneralInfo),
+        raw_general_info: book.general_info ?? {},
+        farm_type_config: farmTypeConfig ?? null
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching manage production book:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const updateManageProductionBook = async (req: Request, res: Response) => {
+  try {
+    const bookId = req.params.bookId;
+    const { name, description, production, image, start_date, end_date, status, general_info, farm_id, farm_type_id } =
+      req.body;
+
+    if (!Types.ObjectId.isValid(bookId)) {
+      res.status(400).json({ success: false, message: 'Invalid bookId' });
+      return;
+    }
+
+    const book = await ProductionBookModel.findById(bookId);
+    if (!book) {
+      res.status(404).json({ success: false, message: 'Book not found' });
+      return;
+    }
+
+    if (start_date !== undefined && !isValidDate(start_date)) {
+      res.status(400).json({ success: false, message: 'Invalid start_date' });
+      return;
+    }
+
+    if (end_date && !isValidDate(end_date)) {
+      res.status(400).json({ success: false, message: 'Invalid end_date' });
+      return;
+    }
+
+    if (status && !allowedStatus.has(status)) {
+      res.status(400).json({ success: false, message: 'Invalid status' });
+      return;
+    }
+
+    const nextFarmId = String(farm_id ?? book.farm_id);
+    const nextFarmTypeId = String(farm_type_id ?? book.farm_type_id);
+    const structuralChanged = nextFarmId !== String(book.farm_id) || nextFarmTypeId !== String(book.farm_type_id);
+
+    if (structuralChanged) {
+      const logCount = await getLogCountByBookId(bookId);
+      if (logCount > 0) {
+        res.status(409).json({ success: false, message: 'Cannot change farm or farm_type after logs were created' });
+        return;
+      }
+    }
+
+    const farmAndConfig = await getFarmAndConfig(nextFarmId, nextFarmTypeId);
+    if (!farmAndConfig.ok) {
+      res.status(farmAndConfig.status).json({ success: false, message: farmAndConfig.message });
+      return;
+    }
+
+    const nextGeneralInfo = general_info !== undefined ? general_info : book.general_info ?? {};
+    const generalInfoError = validateGeneralInfoByConfig(nextGeneralInfo, farmAndConfig.farmTypeConfig);
+    if (generalInfoError) {
+      res.status(400).json({ success: false, message: generalInfoError });
+      return;
+    }
+
+    if (name !== undefined) book.name = name;
+    if (description !== undefined) book.description = description;
+    if (production !== undefined) book.production = production;
+    if (image !== undefined) book.image = image || DEFAULT_IMAGE_URL;
+    if (start_date !== undefined) book.start_date = parseDate(start_date);
+    if (end_date !== undefined) book.end_date = end_date ? parseDate(end_date) : undefined;
+    if (status !== undefined) book.status = status;
+    if (general_info !== undefined) book.general_info = general_info;
+    if (farm_id !== undefined) book.farm_id = new mongoose.Types.ObjectId(nextFarmId);
+    if (farm_type_id !== undefined) book.farm_type_id = new mongoose.Types.ObjectId(nextFarmTypeId);
+
+    await book.save();
+    await book.populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id');
+    await book.populate('farm_type_id', 'type_name image description');
+    await book.populate('created_by', 'name avatar role');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...serializeProductionBook(book),
+        farm_type_config: farmAndConfig.farmTypeConfig ?? null
+      }
+    });
+  } catch (error) {
+    console.error('Error updating manage production book:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const deleteManageProductionBook = async (req: Request, res: Response) => {
+  try {
+    const bookId = req.params.bookId;
+
+    if (!Types.ObjectId.isValid(bookId)) {
+      res.status(400).json({ success: false, message: 'Invalid bookId' });
+      return;
+    }
+
+    const book = await ProductionBookModel.findById(bookId);
+    if (!book) {
+      res.status(404).json({ success: false, message: 'Book not found' });
+      return;
+    }
+
+    book.deleted_at = new Date();
+    await book.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Book deleted softly'
+    });
+  } catch (error) {
+    console.error('Error deleting manage production book:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
