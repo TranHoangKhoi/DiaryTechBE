@@ -1,5 +1,5 @@
 import express from 'express';
-import { updateUser } from '../controllers/user.controller';
+import { changePassword, updateUser } from '../controllers/user.controller';
 import { auth, checkRole } from '../middleware/auth.midleware';
 
 const router = express.Router();
@@ -11,6 +11,7 @@ const router = express.Router();
 // Protected routes
 // router.get('/profile', auth, getUserProfile);
 router.put('/profile', auth, updateUser);
+router.put('/profile/password', auth, changePassword);
 // router.post('/farmer/addFarm/:idUser', auth, addFarmToUser);
 
 // Admin-only route (ví dụ)

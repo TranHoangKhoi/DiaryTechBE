@@ -7,10 +7,14 @@ interface IActivities extends Document {
   description: string;
   fields: [
     {
+      key: string;
       field_name: string;
       field_type: string;
       is_required: boolean;
       options: string[];
+      is_shared: boolean;
+      shared_scope?: string;
+      shared_mode?: string;
     }
   ];
 }
@@ -21,15 +25,20 @@ const ActivitySchema = new mongoose.Schema(
     activity_name: { type: String, required: true },
     image: {
       type: String,
-      default: 'https://res.cloudinary.com/delix6nht/image/upload/v1760068625/3_xs0l5w.png'
+      default:
+        'https://res.cloudinary.com/delix6nht/image/upload/v1779251418/55fnc3b4ng-nghie1bb87p-thc3b4ng-minh1-1604989305810604890581-crop-1604989310824614604916-1624349165163487002833_hgk56s.jpg'
     },
     description: { type: String },
     fields: [
       {
+        key: { type: String, required: true },
         field_name: { type: String, required: true },
         field_type: { type: String, required: true },
         is_required: { type: Boolean, default: false },
-        options: { type: [String] }
+        options: { type: [String] },
+        is_shared: { type: Boolean, default: false },
+        shared_scope: { type: String, enum: ['farm', 'farm_type'], default: undefined },
+        shared_mode: { type: String, enum: ['suggest', 'latest'], default: undefined }
       }
     ]
   },

@@ -2,14 +2,19 @@ import { Request, Response } from 'express';
 import mongoose, { Types } from 'mongoose';
 import { z } from 'zod';
 import Activities from '../models/Activities.model';
+import FarmModel from '~/models/Farm.model';
 import Farmtype from '../models/Farmtype.model';
+import { getSharedFieldDefinition, normalizeSharedFieldKey } from '~/constants/sharedFieldKeys';
 import ProductionLogsModel from '~/models/ProductionLogs.model';
+import { assertFarmAccess } from '~/services/farmAccess.service';
+import { getSharedFieldHistoryForFields } from '~/services/sharedFieldValue.service';
 
 const DEFAULT_ACTIVITY_IMAGE = 'https://res.cloudinary.com/delix6nht/image/upload/v1760068625/3_xs0l5w.png';
 const FIELD_TYPES = ['text', 'number', 'date', 'image', 'select', 'textarea'] as const;
 
 const fieldSchema = z
   .object({
+    key: z.string().trim().min(1, 'Field key is required'),
     field_name: z.string().trim().min(1, 'Field name is required'),
     field_type: z.enum(FIELD_TYPES),
     is_required: z.boolean().optional().default(false),
@@ -58,17 +63,36 @@ const validateUniqueFieldNames = (fields: Array<{ field_name: string }>) => {
   return null;
 };
 
-const normalizeActivityPayload = (payload: z.infer<typeof createActivitySchema> | z.infer<typeof updateActivitySchema>) => {
-  if (!payload.fields) return payload;
+const validateUniqueFieldKeys = (fields: Array<{ key: string }>) => {
+  const keys = new Set<string>();
+  for (const field of fields) {
+    const normalized = normalizeSharedFieldKey(field.key);
+    if (keys.has(normalized)) return field.key;
+    keys.add(normalized);
+  }
+  return null;
+};
 
+const normalizeActivityPayload = (
+  payload: z.infer<typeof createActivitySchema> | z.infer<typeof updateActivitySchema>
+) => {
   return {
     ...payload,
-    fields: payload.fields.map((field) => ({
-      field_name: field.field_name,
-      field_type: field.field_type,
-      is_required: field.is_required ?? false,
-      options: field.field_type === 'select' ? field.options || [] : []
-    }))
+    image: payload.image?.trim() || DEFAULT_ACTIVITY_IMAGE,
+    ...(payload.fields
+      ? {
+          fields: payload.fields.map((field) => ({
+            key: normalizeSharedFieldKey(field.key),
+            field_name: field.field_name,
+            field_type: field.field_type,
+            is_required: field.is_required ?? false,
+            options: field.field_type === 'select' ? field.options || [] : [],
+            is_shared: Boolean(getSharedFieldDefinition(normalizeSharedFieldKey(field.key))),
+            shared_scope: getSharedFieldDefinition(normalizeSharedFieldKey(field.key))?.default_scope,
+            shared_mode: getSharedFieldDefinition(normalizeSharedFieldKey(field.key))?.mode
+          }))
+        }
+      : {})
   };
 };
 
@@ -85,6 +109,12 @@ export const createActivity = async (req: Request, res: Response): Promise<void>
     const duplicateField = validateUniqueFieldNames(payload.fields);
     if (duplicateField) {
       res.status(400).json({ message: `Duplicate field name: ${duplicateField}` });
+      return;
+    }
+
+    const duplicateKey = validateUniqueFieldKeys(payload.fields);
+    if (duplicateKey) {
+      res.status(400).json({ message: `Duplicate field key: ${duplicateKey}` });
       return;
     }
 
@@ -148,6 +178,76 @@ export const getActivityById = async (req: Request, res: Response): Promise<void
   }
 };
 
+export const getActivityFormWithHistory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { farm_id, limit } = req.query;
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({ success: false, message: 'Invalid activity id' });
+      return;
+    }
+
+    if (!farm_id || !isValidObjectId(farm_id as string)) {
+      res.status(400).json({ success: false, message: 'Invalid farm_id' });
+      return;
+    }
+
+    const farmAccess = await assertFarmAccess(req.user, farm_id as string);
+    if (!farmAccess.ok) {
+      res.status(farmAccess.status).json({ success: false, message: farmAccess.message });
+      return;
+    }
+
+    const [activity, farm] = await Promise.all([
+      Activities.findById(id).lean(),
+      FarmModel.findById(farm_id).select('_id farm_type_id').lean()
+    ]);
+
+  if (!activity) {
+      res.status(404).json({ success: false, message: 'Activity not found' });
+      return;
+    }
+
+    if (!farm) {
+      res.status(404).json({ success: false, message: 'Farm not found' });
+      return;
+    }
+
+    if (String(activity.farm_type_id) !== String(farm.farm_type_id)) {
+      res.status(400).json({ success: false, message: 'activity_id does not match farm_type_id' });
+      return;
+    }
+
+    const fields = Array.isArray(activity.fields) ? activity.fields : [];
+    const sharedValues = await getSharedFieldHistoryForFields({
+      farm,
+      fields,
+      limit
+    });
+
+  const fieldsWithHistory = fields.map((field: any) => ({
+    ...field,
+    shared_history: field.key ? sharedValues[normalizeSharedFieldKey(field.key)] ?? null : null
+  }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        activity: {
+          ...activity,
+          fields: fieldsWithHistory
+        },
+        template_fields: fieldsWithHistory,
+        shared_values: sharedValues
+      }
+    });
+  } catch (error) {
+    console.error('Error getActivityFormWithHistory:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 export const getManageActivities = async (req: Request, res: Response): Promise<void> => {
   try {
     const { farm_type_id, search, page = 1, limit = 20 } = req.query;
@@ -165,7 +265,9 @@ export const getManageActivities = async (req: Request, res: Response): Promise<
     }
 
     if (search && String(search).trim()) {
-      const escapedSearch = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedSearch = String(search)
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [{ activity_name: { $regex: escapedSearch, $options: 'i' } }];
     }
 
@@ -209,6 +311,12 @@ export const updateActivities = async (req: Request, res: Response): Promise<voi
       const duplicateField = validateUniqueFieldNames(payload.fields);
       if (duplicateField) {
         res.status(400).json({ message: `Duplicate field name: ${duplicateField}` });
+        return;
+      }
+
+      const duplicateKey = validateUniqueFieldKeys(payload.fields);
+      if (duplicateKey) {
+        res.status(400).json({ message: `Duplicate field key: ${duplicateKey}` });
         return;
       }
     }

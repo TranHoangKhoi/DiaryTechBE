@@ -6,6 +6,11 @@ import FarmModel from '~/models/Farm.model';
 import ProductionBookModel from '~/models/ProductionBook.model';
 import { default as ProductionLogs, default as ProductionLogsModel } from '~/models/ProductionLogs.model';
 import { assertFarmAccess, getFarmAccessCondition } from '~/services/farmAccess.service';
+import {
+  normalizeFieldKey,
+  normalizeProductionLogDataByActivity,
+  syncSharedFieldValuesFromLog
+} from '~/services/sharedFieldValue.service';
 
 // Schema cho chemical_usages
 const chemicalUsageSchema = z.object({
@@ -59,6 +64,12 @@ const isEmptyValue = (value: unknown) => {
   return false;
 };
 
+const readFieldValue = (rawData: Record<string, unknown>, field: any) => {
+  const fieldKey = field?.key ? normalizeFieldKey(field.key) : '';
+  if (fieldKey && rawData[fieldKey] !== undefined) return rawData[fieldKey];
+  return rawData[field.field_name];
+};
+
 const validateLogDataByActivity = (data: unknown, activity: any) => {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     return { ok: false as const, message: 'data must be an object' };
@@ -68,7 +79,7 @@ const validateLogDataByActivity = (data: unknown, activity: any) => {
 
   for (const field of getActivityFields(activity)) {
     const fieldName = field.field_name;
-    const value = rawData[fieldName];
+    const value = readFieldValue(rawData, field);
 
     if (field.is_required && isEmptyValue(value)) {
       return { ok: false as const, message: `${fieldName} is required` };
@@ -99,6 +110,24 @@ const validateLogDataByActivity = (data: unknown, activity: any) => {
   }
 
   return { ok: true as const };
+};
+
+const syncSharedValuesSafely = async ({
+  farm,
+  activity,
+  book,
+  log
+}: {
+  farm: any;
+  activity: any;
+  book: any;
+  log: any;
+}) => {
+  try {
+    await syncSharedFieldValuesFromLog({ farm, activity, book, log });
+  } catch (error) {
+    console.error('Error syncSharedFieldValuesFromLog:', error);
+  }
 };
 
 const assertLogRelations = async ({
@@ -180,10 +209,12 @@ export const createProductionLog = async (req: Request, res: Response) => {
       return;
     }
 
+    const normalizedData = normalizeProductionLogDataByActivity(data, relationValidation.activity);
+
     const newProductionLog = new ProductionLogsModel({
       farm_id,
       activity_id,
-      data,
+      data: normalizedData,
       chemical_usages,
       notes,
       date: dateValue,
@@ -192,6 +223,12 @@ export const createProductionLog = async (req: Request, res: Response) => {
     });
 
     const savedLog = await newProductionLog.save();
+    await syncSharedValuesSafely({
+      farm: relationValidation.farm,
+      activity: relationValidation.activity,
+      book: relationValidation.book,
+      log: savedLog
+    });
 
     res.status(201).json({
       success: true,
@@ -692,12 +729,18 @@ export const updateManageProductionLog = async (req: Request, res: Response): Pr
     currentLog.farm_id = new mongoose.Types.ObjectId(nextFarmId) as any;
     currentLog.activity_id = new mongoose.Types.ObjectId(nextActivityId) as any;
     currentLog.book_id = new mongoose.Types.ObjectId(nextBookId) as any;
-    currentLog.data = nextData as any;
+    currentLog.data = normalizeProductionLogDataByActivity(nextData, relationValidation.activity) as any;
 
     if (req.body.notes !== undefined) currentLog.notes = req.body.notes;
     currentLog.updated_at = new Date();
 
     const savedLog = await currentLog.save();
+    await syncSharedValuesSafely({
+      farm: relationValidation.farm,
+      activity: relationValidation.activity,
+      book: relationValidation.book,
+      log: savedLog
+    });
 
     res.status(200).json({
       success: true,

@@ -3,6 +3,7 @@ import {
   createActivity,
   deleteActivity,
   getActivityById,
+  getActivityFormWithHistory,
   getAllActivityByIdType,
   getManageActivities,
   updateActivities
@@ -18,6 +19,7 @@ router.put('/:id', auth, checkRole('superadmin'), updateActivities);
 router.delete('/manage/:id', auth, checkRole('superadmin'), deleteActivity);
 
 router.get('/farmtype/:id', auth, getAllActivityByIdType);
+router.get('/:id/form', auth, getActivityFormWithHistory);
 router.get('/:id', auth, getActivityById);
 
 export default router;

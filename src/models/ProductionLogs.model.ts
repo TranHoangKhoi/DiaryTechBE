@@ -5,7 +5,7 @@ interface IProductionLog extends Document {
   activity_id: string;
   book_id: string;
   date: Date;
-  data: []; // dữ liệu form động
+  data: Record<string, unknown>; // dữ liệu form động
   // chemical_usages: [
   //   {
   //     chemical_id: string;

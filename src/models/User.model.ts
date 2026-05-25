@@ -6,6 +6,8 @@ export interface IUser extends Document {
   phone: string;
   password: string;
   name: string;
+  province?: string;
+  ward?: string;
   address?: string;
   des: string;
   avatar: string;
@@ -29,6 +31,8 @@ const UserSchema = new mongoose.Schema<IUser>({
   phone: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, required: true },
+  province: { type: String, default: '' },
+  ward: { type: String, default: '' },
   address: { type: String },
   des: { type: String, default: '' },
   avatar: { type: String, default: '' },
