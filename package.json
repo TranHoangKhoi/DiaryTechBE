@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "seed:map-assistant": "tsx farmseed/seedMapAssistantContents.ts",
     "seed:map-thanh-binh": "tsx farmseed/seedThanhBinhMap.ts",
+    "inventory:migrate": "tsx farmseed/normalizeInventoryData.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prettier": "prettier --check .",

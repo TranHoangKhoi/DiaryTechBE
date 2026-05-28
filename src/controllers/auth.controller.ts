@@ -6,7 +6,7 @@ import User from '../models/User.model';
 import {
   getAccessContextByUserId,
   getActiveModuleKeysByOwnerId,
-  getVisibleSubscriptionsByUserId,
+  getVisibleSubscriptionsByUserId
 } from '~/services/subscriptionAccess.service';
 
 const registerSchema = z.object({
@@ -24,7 +24,10 @@ const registerSchema = z.object({
     .string()
     .regex(/^[0-9a-fA-F]{24}$/, { message: 'owner_id pháº£i lÃ  ObjectId há»£p lá»‡' })
     .optional(),
-  allowed_modules: z.array(z.enum(['farm_diary', 'agri_map', 'trace_origin'])).optional().default([])
+  allowed_modules: z
+    .array(z.enum(['farm_diary', 'agri_map', 'trace_origin']))
+    .optional()
+    .default([])
 });
 
 const loginSchema = z.object({
@@ -86,12 +89,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (role === 'sub_account') {
       if (!req.user || !['owner', 'superadmin'].includes(req.user.role)) {
-      res.status(403).json({ message: 'Only owner or superadmin can create sub_account' });
+        res.status(403).json({ message: 'Only owner or superadmin can create sub_account' });
         return;
       }
 
       if (!owner_id) {
-      res.status(400).json({ message: 'owner_id is required for sub_account' });
+        res.status(400).json({ message: 'owner_id is required for sub_account' });
         return;
       }
 
@@ -148,15 +151,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (req.user) {
       res.status(201).json({
-      success: true,
-      message: 'User created successfully',
-      data: {
-        id: user._id,
-        phone: user.phone,
-        role: user.role,
-        owner_id: user.owner_id,
-        allowed_modules: user.allowed_modules ?? []
-      }
+        success: true,
+        message: 'User created successfully',
+        data: {
+          id: user._id,
+          phone: user.phone,
+          role: user.role,
+          owner_id: user.owner_id,
+          allowed_modules: user.allowed_modules ?? []
+        }
       });
       return;
     }
@@ -188,18 +191,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const user = await User.findOne({ phone });
 
     if (!user) {
-      res.status(400).json({ message: 'TÃªn Ä‘Äƒng nháº­p hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng !' });
+      res.status(400).json({ message: 'Số điện thoại hoặc mật khẩu không đúng' });
       return;
     }
 
     if (user.status !== 'active') {
-      res.status(403).json({ message: 'TÃ i khoáº£n khÃ´ng hoáº¡t Ä‘á»™ng' });
+      res.status(403).json({ message: 'Tài khoản không hoạt động' });
       return;
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      res.status(400).json({ message: 'TÃªn Ä‘Äƒng nháº­p hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng !' });
+      res.status(400).json({ message: 'Số điện thoại hoặc mật khẩu không đúng' });
       return;
     }
 
@@ -236,7 +239,7 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
 
     res.json({
       success: true,
-      message: 'Láº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng.',
+      message: 'Lấy thông tin thành công.',
       data: payload
     });
   } catch (error) {
@@ -250,24 +253,24 @@ export const getUserProfileByAdmin = async (req: Request, res: Response): Promis
     const userId = req.params.userId;
 
     if (!userId) {
-      res.status(400).json({ success: false, message: 'Thiáº¿u userId' });
+      res.status(400).json({ success: false, message: 'Thiếu userId' });
       return;
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      res.status(400).json({ success: false, message: 'userId khÃ´ng há»£p lá»‡' });
+      res.status(400).json({ success: false, message: 'User ID không hợp lệ' });
       return;
     }
 
     const payload = await buildAuthResponse(userId);
     if (!payload) {
-      res.status(404).json({ success: false, message: 'KhÃ´ng tÃ¬m tháº¥y user' });
+      res.status(404).json({ success: false, message: 'Không tìm thấy người dùng!' });
       return;
     }
 
     res.json({
       success: true,
-      message: 'Láº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng.',
+      message: 'Lấy thông tin thành công.',
       data: payload
     });
   } catch (error) {

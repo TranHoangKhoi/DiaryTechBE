@@ -32,8 +32,13 @@ export const SHARED_FIELD_KEYS = {
   CHEMICAL_TREATMENT: 'chemical_treatment',
   WATER_TREATMENT_CHEMICAL: 'water_treatment_chemical',
   TREATMENT_CHEMICAL: 'treatment_chemical',
+  FEED_NAME: 'feed_name',
   FEED_CODE: 'feed_code',
+  FEED_SIZE: 'feed_size',
   FEED_SUPPLEMENT: 'feed_supplement',
+  FEED_MANUFACTURER: 'feed_manufacturer',
+  SELLER: 'seller',
+  RECEIVER: 'receiver',
   SEED_SIZE: 'seed_size',
   SEED_QUALITY: 'seed_quality',
   SPECIES: 'species',
@@ -138,8 +143,22 @@ export const SHARED_FIELD_DEFINITIONS: SharedFieldDefinition[] = [
     mode: 'suggest'
   },
   {
+    key: SHARED_FIELD_KEYS.FEED_NAME,
+    label: 'Tên thức ăn',
+    value_type: 'text',
+    default_scope: SHARED_FIELD_SCOPES.farm,
+    mode: 'suggest'
+  },
+  {
     key: SHARED_FIELD_KEYS.FEED_CODE,
     label: 'Mã thức ăn',
+    value_type: 'text',
+    default_scope: SHARED_FIELD_SCOPES.farm,
+    mode: 'suggest'
+  },
+  {
+    key: SHARED_FIELD_KEYS.FEED_SIZE,
+    label: 'Kích cỡ thức ăn',
     value_type: 'text',
     default_scope: SHARED_FIELD_SCOPES.farm,
     mode: 'suggest'
@@ -148,6 +167,27 @@ export const SHARED_FIELD_DEFINITIONS: SharedFieldDefinition[] = [
     key: SHARED_FIELD_KEYS.FEED_SUPPLEMENT,
     label: 'Chất bổ xung thức ăn',
     value_type: 'textarea',
+    default_scope: SHARED_FIELD_SCOPES.farm,
+    mode: 'suggest'
+  },
+  {
+    key: SHARED_FIELD_KEYS.FEED_MANUFACTURER,
+    label: 'Nhà sản xuất thức ăn',
+    value_type: 'text',
+    default_scope: SHARED_FIELD_SCOPES.farm,
+    mode: 'suggest'
+  },
+  {
+    key: SHARED_FIELD_KEYS.SELLER,
+    label: 'Người bán',
+    value_type: 'text',
+    default_scope: SHARED_FIELD_SCOPES.farm,
+    mode: 'suggest'
+  },
+  {
+    key: SHARED_FIELD_KEYS.RECEIVER,
+    label: 'Người nhận',
+    value_type: 'text',
     default_scope: SHARED_FIELD_SCOPES.farm,
     mode: 'suggest'
   },
@@ -308,8 +348,8 @@ export const SHARED_FIELD_KEY_ALIASES = {
   product_name: SHARED_FIELD_KEYS.CHEMICAL_NAME,
   product_usage: SHARED_FIELD_KEYS.CHEMICAL_USAGE,
   manufacturer: SHARED_FIELD_KEYS.CHEMICAL_MANUFACTURER,
-  seller: SHARED_FIELD_KEYS.CHEMICAL_SELLER,
-  receiver: SHARED_FIELD_KEYS.CHEMICAL_RECEIVER,
+  seller: SHARED_FIELD_KEYS.SELLER,
+  receiver: SHARED_FIELD_KEYS.RECEIVER,
   unit: SHARED_FIELD_KEYS.CHEMICAL_UNIT
 } as const;
 

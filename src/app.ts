@@ -19,7 +19,9 @@ import userSubscriptionRoutes from './routes/userSubscription.route';
 import farmtypeConfigRoutes from './routes/farmtypeConfig.route';
 import mapRoutes from './routes/map.route';
 import cropCategoriesRoutes from './routes/cropCategories.route';
-import operationalLogRoutes from './routes/operationalLog.route';
+import InventoryLogRoutes from './routes/InventoryLog.route';
+import inventoryMaterialRoutes from './routes/inventoryMaterial.route';
+import inventoryStockRoutes from './routes/inventoryStock.route';
 
 const app: Express = express();
 app.set('trust proxy', 1);
@@ -55,6 +57,8 @@ app.use('/api/userSubscription', userSubscriptionRoutes);
 app.use('/api/farmtypeConfig', farmtypeConfigRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/crop', cropCategoriesRoutes);
-app.use('/api/operationalLogs', operationalLogRoutes);
+app.use('/api/inventory', InventoryLogRoutes);
+app.use('/api/inventory', inventoryMaterialRoutes);
+app.use('/api/inventory', inventoryStockRoutes);
 
 export default app;
