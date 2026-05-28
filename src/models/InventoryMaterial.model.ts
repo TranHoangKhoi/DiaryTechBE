@@ -13,6 +13,7 @@ export interface IInventoryMaterial extends Document {
   key: string;
   code: string;
   name: string;
+  image_url?: string;
   supplier_name?: string;
   manufacturer?: string;
   unit: string;
@@ -26,20 +27,12 @@ export interface IInventoryMaterial extends Document {
   last_used_at: Date;
 }
 
-const normalizeText = (value: unknown) =>
-  typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+const normalizeText = (value: unknown) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '');
 
 const normalizeLower = (value: unknown) => normalizeText(value).toLowerCase();
 
 const buildSearchText = (doc: Partial<IInventoryMaterial>) =>
-  [
-    doc.name,
-    doc.supplier_name,
-    doc.manufacturer,
-    doc.unit,
-    doc.description,
-    ...(doc.aliases || [])
-  ]
+  [doc.name, doc.supplier_name, doc.manufacturer, doc.unit, doc.description, ...(doc.aliases || [])]
     .map((item) => normalizeText(item))
     .filter(Boolean)
     .join(' ')
@@ -71,6 +64,7 @@ const InventoryMaterialSchema = new mongoose.Schema<IInventoryMaterial>(
     key: { type: String, required: true, trim: true, lowercase: true },
     code: { type: String, required: true, trim: true, lowercase: true },
     name: { type: String, required: true, trim: true },
+    image_url: { type: String, trim: true, default: '' },
     supplier_name: { type: String, trim: true, default: '' },
     manufacturer: { type: String, trim: true, default: '' },
     unit: { type: String, required: true, trim: true },
@@ -103,13 +97,12 @@ const InventoryMaterialSchema = new mongoose.Schema<IInventoryMaterial>(
 
 InventoryMaterialSchema.pre('validate', function (next) {
   this.name = normalizeText(this.name);
+  this.image_url = normalizeText(this.image_url);
   this.supplier_name = normalizeText(this.supplier_name);
   this.manufacturer = normalizeText(this.manufacturer);
   this.unit = normalizeText(this.unit);
   this.description = normalizeText(this.description);
-  this.aliases = Array.isArray(this.aliases)
-    ? this.aliases.map((alias) => normalizeText(alias)).filter(Boolean)
-    : [];
+  this.aliases = Array.isArray(this.aliases) ? this.aliases.map((alias) => normalizeText(alias)).filter(Boolean) : [];
 
   this.normalized_name = normalizeLower(this.name);
   this.search_text = buildSearchText(this);

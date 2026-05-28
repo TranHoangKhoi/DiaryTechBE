@@ -49,6 +49,7 @@ const materialSchema = z.object({
   key: z.string().trim().min(1, 'Material key is required'),
   code: z.string().trim().optional(),
   name: z.string().trim().min(1, 'Material name is required'),
+  image_url: z.string().trim().optional().default(''),
   supplier_name: z.string().trim().optional().default(''),
   manufacturer: z.string().trim().optional().default(''),
   unit: z.string().trim().min(1, 'Unit is required'),
