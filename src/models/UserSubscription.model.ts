@@ -8,7 +8,13 @@ export interface IUserSubscription extends Document {
   start_date: Date;
   end_date: Date;
   status: 'active' | 'expired' | 'pending' | 'revoked';
+  max_sub_accounts: number;
   remaining_sub_accounts: number;
+  module_config?: {
+    farm_diary?: {
+      max_sub_accounts: number;
+    };
+  };
   assigned_by: mongoose.Types.ObjectId;
   activated_at?: Date;
   revoked_at?: Date;
@@ -21,7 +27,13 @@ const UserSubscriptionSchema = new mongoose.Schema({
   start_date: { type: Date, default: Date.now },
   end_date: { type: Date, required: true },
   status: { type: String, enum: ['active', 'expired', 'pending', 'revoked'], default: 'active' },
+  max_sub_accounts: { type: Number, default: 0 },
   remaining_sub_accounts: { type: Number, default: 0 },
+  module_config: {
+    farm_diary: {
+      max_sub_accounts: { type: Number, default: 0 }
+    }
+  },
   assigned_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   activated_at: { type: Date, default: Date.now },
   revoked_at: { type: Date }

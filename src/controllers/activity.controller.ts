@@ -204,7 +204,7 @@ export const getActivityFormWithHistory = async (req: Request, res: Response): P
       FarmModel.findById(farm_id).select('_id farm_type_id').lean()
     ]);
 
-  if (!activity) {
+    if (!activity) {
       res.status(404).json({ success: false, message: 'Activity not found' });
       return;
     }
@@ -226,10 +226,10 @@ export const getActivityFormWithHistory = async (req: Request, res: Response): P
       limit
     });
 
-  const fieldsWithHistory = fields.map((field: any) => ({
-    ...field,
-    shared_history: field.key ? sharedValues[normalizeSharedFieldKey(field.key)] ?? null : null
-  }));
+    const fieldsWithHistory = fields.map((field: any) => ({
+      ...field,
+      shared_history: field.key ? (sharedValues[normalizeSharedFieldKey(field.key)] ?? null) : null
+    }));
 
     res.status(200).json({
       success: true,
@@ -356,24 +356,24 @@ export const deleteActivity = async (req: Request, res: Response): Promise<void>
     const activityId = req.params.id;
 
     if (!isValidObjectId(activityId)) {
-      res.status(400).json({ message: 'Invalid activity id' });
+      res.status(400).json({ message: 'Dữ liệu hoạt động không hợp lệ !' });
       return;
     }
 
     const logCount = await ProductionLogsModel.countDocuments({ activity_id: activityId });
     if (logCount > 0) {
-      res.status(409).json({ message: 'Cannot delete activity that already has production logs' });
+      res.status(409).json({ message: 'Không thể xóa hoạt động vì đang có dữ liệu nhật ký trên hoạt động này !' });
       return;
     }
 
     const deletedActivity = await Activities.findByIdAndDelete(activityId);
     if (!deletedActivity) {
-      res.status(404).json({ message: 'Activity not found' });
+      res.status(404).json({ message: 'Không tìm thấy dữ liệu hoạt động !' });
       return;
     }
 
     res.status(200).json({
-      message: 'Delete activity successfully',
+      message: 'Xóa hoạt động thành công !',
       data: deletedActivity
     });
   } catch (error) {

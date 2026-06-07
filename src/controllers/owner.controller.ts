@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
-import User from '../models/User.model';
+import User, { IUser } from '../models/User.model';
 import Farm from '../models/Farm.model';
 import { FarmCrop } from '../models/FarmCrop.model';
 import { Crop } from '../models/CropCategories';
 import ProductionLog from '../models/ProductionLogs.model';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { roleUser } from '~/config/constant';
+import { syncUserFileServer } from '~/services/userFileServerSync.service';
+import { createOwnerSubscription } from '~/services/userSubscription.service';
 
 // Schema validation với Zod
 const registerSchema = z.object({
@@ -18,13 +20,52 @@ const registerSchema = z.object({
   address: z.string()
 });
 
+const provinceSchema = z.object({
+  id: z.string().optional(),
+  province_code: z.string().min(1),
+  name: z.string().min(1),
+  short_name: z.string().optional(),
+  code: z.string().optional(),
+  place_type: z.string().optional(),
+  country: z.string().optional().default('VN'),
+  created_at: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional()
+});
+
+const wardSchema = z.object({
+  id: z.string().optional(),
+  ward_code: z.string().min(1),
+  name: z.string().min(1),
+  province_code: z.string().min(1),
+  created_at: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional()
+});
+
+const optionalDateSchema = z.preprocess((value) => {
+  if (value === '' || value === null || typeof value === 'undefined') return null;
+  return value;
+}, z.coerce.date().nullable().optional());
+
 const registerOwnerSchema = z.object({
   phone: z.string().min(10).max(10),
   password: z.string().min(6),
   name: z.string().min(1),
+  cccd: z.string().optional().default(''),
+  date_of_birth: optionalDateSchema,
+  cccd_issue_place: z.string().optional().default(''),
+  cccd_issue_date: optionalDateSchema,
   address: z.string().min(1),
+  province: provinceSchema,
+  ward: wardSchema,
   gender: z.number().min(1).default(1),
-  des: z.string().optional()
+  des: z.string().optional(),
+  module_id: z.string().regex(/^[0-9a-fA-F]{24}$/),
+  package_id: z.string().regex(/^[0-9a-fA-F]{24}$/),
+  custom_limits: z
+    .object({
+      max_sub_accounts: z.number().int().min(0).optional()
+    })
+    .optional()
 });
 
 export const getFarmer = async (req: Request, res: Response) => {
@@ -217,46 +258,104 @@ export const getOwnerStatistics = async (req: Request, res: Response): Promise<v
 };
 
 export const registerOwner = async (req: Request, res: Response): Promise<void> => {
+  const session = await mongoose.startSession();
+
   try {
     if (req.user?.role !== 'superadmin') {
       res.status(403).json({ success: false, message: 'Only superadmin can create owner accounts' });
       return;
     }
 
-    const { phone, password, name, address, gender, des } = registerOwnerSchema.parse(req.body);
-
-    const existedUser = await User.findOne({ phone });
-    if (existedUser) {
-      res.status(400).json({ success: false, message: 'User already exists' });
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
+
+    const {
+      phone,
+      password,
+      name,
+      cccd,
+      date_of_birth,
+      cccd_issue_place,
+      cccd_issue_date,
+      address,
+      province,
+      ward,
+      gender,
+      des,
+      module_id,
+      package_id,
+      custom_limits
+    } = registerOwnerSchema.parse(req.body);
 
     const avatar =
       gender === 1
         ? 'https://res.cloudinary.com/delix6nht/image/upload/v1755744492/1_wlrjjb.png'
         : 'https://res.cloudinary.com/delix6nht/image/upload/v1755744493/2_giyotm.png';
 
-    const user = new User({
-      password,
-      name,
-      role: 'owner',
-      address,
-      phone,
-      gender,
-      avatar,
-      des
+    const assignedBy = req.user.id;
+    let createdOwner: IUser | null = null;
+    let createdSubscription: Awaited<ReturnType<typeof createOwnerSubscription>> | null = null;
+
+    await session.withTransaction(async () => {
+      const existedUser = await User.findOne({ phone }).select('_id').session(session);
+      if (existedUser) {
+        throw Object.assign(new Error('User already exists'), { statusCode: 400 });
+      }
+
+      const [user] = await User.create(
+        [
+          {
+            password,
+            name,
+            role: 'owner',
+            address,
+            province,
+            ward,
+            phone,
+            cccd,
+            date_of_birth,
+            cccd_issue_place,
+            cccd_issue_date,
+            gender,
+            avatar,
+            des
+          }
+        ],
+        { session }
+      );
+
+      createdOwner = user;
+      createdSubscription = await createOwnerSubscription({
+        user_id: String(user._id),
+        module_id,
+        package_id,
+        custom_limits,
+        assigned_by: assignedBy,
+        session
+      });
     });
 
-    await user.save();
+    const owner = createdOwner as IUser | null;
+    if (!owner) {
+      res.status(500).json({ success: false, message: 'Failed to create owner account' });
+      return;
+    }
+
+    await syncUserFileServer(String(owner._id));
 
     res.status(201).json({
       success: true,
-      message: 'Owner account created successfully',
+      message: 'Owner account and subscription created successfully',
       data: {
-        id: user._id,
-        phone: user.phone,
-        role: user.role,
-        status: user.status
+        owner: {
+          id: owner._id,
+          phone: owner.phone,
+          role: owner.role,
+          status: owner.status
+        },
+        subscription: createdSubscription
       }
     });
   } catch (error) {
@@ -265,7 +364,19 @@ export const registerOwner = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    const statusCode =
+      error instanceof Error && 'statusCode' in error ? Number((error as { statusCode: number }).statusCode) : 500;
+    if (statusCode !== 500) {
+      res.status(statusCode).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to create owner account'
+      });
+      return;
+    }
+
     console.error('Error creating owner account:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
+  } finally {
+    session.endSession();
   }
 };

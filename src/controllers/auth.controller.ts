@@ -8,6 +8,7 @@ import {
   getActiveModuleKeysByOwnerId,
   getVisibleSubscriptionsByUserId
 } from '~/services/subscriptionAccess.service';
+import { syncUserFileServer } from '~/services/userFileServerSync.service';
 
 const registerSchema = z.object({
   phone: z
@@ -148,6 +149,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     });
 
     await user.save();
+    await syncUserFileServer(String(user._id));
 
     if (req.user) {
       res.status(201).json({
@@ -206,6 +208,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    void syncUserFileServer(String(user._id));
+
     const token = buildToken(String(user._id));
     const payload = await buildAuthResponse(String(user._id));
     if (!payload) {
@@ -231,6 +235,7 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    await syncUserFileServer(userId);
     const payload = await buildAuthResponse(userId);
     if (!payload) {
       res.status(404).json({ success: false, message: 'User not found' });
@@ -262,6 +267,7 @@ export const getUserProfileByAdmin = async (req: Request, res: Response): Promis
       return;
     }
 
+    await syncUserFileServer(userId);
     const payload = await buildAuthResponse(userId);
     if (!payload) {
       res.status(404).json({ success: false, message: 'Không tìm thấy người dùng!' });

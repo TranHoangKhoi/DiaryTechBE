@@ -2,6 +2,36 @@ import { Request, Response } from 'express';
 import User from '../models/User.model';
 import { z } from 'zod';
 
+const provinceSchema = z
+  .object({
+    id: z.string().optional(),
+    province_code: z.string().min(1),
+    name: z.string().min(1),
+    short_name: z.string().optional(),
+    code: z.string().optional(),
+    place_type: z.string().optional(),
+    country: z.string().optional().default('VN'),
+    created_at: z.string().nullable().optional(),
+    updated_at: z.string().nullable().optional()
+  })
+  .nullable();
+
+const wardSchema = z
+  .object({
+    id: z.string().optional(),
+    ward_code: z.string().min(1),
+    name: z.string().min(1),
+    province_code: z.string().min(1),
+    created_at: z.string().nullable().optional(),
+    updated_at: z.string().nullable().optional()
+  })
+  .nullable();
+
+const normalizeOptionalDate = (value: unknown) => {
+  if (value === '' || value === null || typeof value === 'undefined') return null;
+  return value;
+};
+
 const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),
@@ -34,13 +64,20 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const {
       name,
       phone,
+      cccd,
+      date_of_birth,
+      cccd_issue_place,
+      cccd_issue_date,
       gender,
-      province,
-      ward,
+      province: rawProvince,
+      ward: rawWard,
       address,
       des,
       avatar,
     } = req.body;
+
+    const province = typeof rawProvince !== 'undefined' ? provinceSchema.parse(rawProvince || null) : undefined;
+    const ward = typeof rawWard !== 'undefined' ? wardSchema.parse(rawWard || null) : undefined;
 
     const updateData: Record<string, unknown> = {
       updated_at: new Date(),
@@ -48,6 +85,10 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 
     if (typeof name !== 'undefined') updateData.name = name;
     if (typeof phone !== 'undefined') updateData.phone = phone;
+    if (typeof cccd !== 'undefined') updateData.cccd = cccd;
+    if (typeof date_of_birth !== 'undefined') updateData.date_of_birth = normalizeOptionalDate(date_of_birth);
+    if (typeof cccd_issue_place !== 'undefined') updateData.cccd_issue_place = cccd_issue_place || '';
+    if (typeof cccd_issue_date !== 'undefined') updateData.cccd_issue_date = normalizeOptionalDate(cccd_issue_date);
     if (typeof gender !== 'undefined') updateData.gender = Number(gender);
     if (typeof province !== 'undefined') updateData.province = province;
     if (typeof ward !== 'undefined') updateData.ward = ward;
@@ -82,6 +123,11 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       data: user,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ message: error.errors[0]?.message || 'Invalid profile payload', errors: error.errors });
+      return;
+    }
+
     res.status(500).json({ message: 'Server error' });
   }
 };

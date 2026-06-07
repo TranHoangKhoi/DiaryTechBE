@@ -22,6 +22,7 @@ import cropCategoriesRoutes from './routes/cropCategories.route';
 import InventoryLogRoutes from './routes/InventoryLog.route';
 import inventoryMaterialRoutes from './routes/inventoryMaterial.route';
 import inventoryStockRoutes from './routes/inventoryStock.route';
+import fileRoutes from './routes/file.route';
 
 const app: Express = express();
 app.set('trust proxy', 1);
@@ -60,5 +61,6 @@ app.use('/api/crop', cropCategoriesRoutes);
 app.use('/api/inventory', InventoryLogRoutes);
 app.use('/api/inventory', inventoryMaterialRoutes);
 app.use('/api/inventory', inventoryStockRoutes);
+app.use('/api/files', fileRoutes);
 
 export default app;

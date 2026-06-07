@@ -50,7 +50,14 @@ export const createServiceModule = async (req: Request, res: Response) => {
 
 export const getAllServiceModules = async (req: Request, res: Response) => {
   try {
-    const modules = await ServiceModuleModel.find().sort({ sort_order: 1, key: 1 });
+    const { is_active } = req.query;
+    const filter: Record<string, unknown> = {};
+
+    if (typeof is_active === 'string' && is_active) {
+      filter.is_active = is_active === 'true';
+    }
+
+    const modules = await ServiceModuleModel.find(filter).sort({ sort_order: 1, key: 1 });
 
     res.status(200).json({
       success: true,

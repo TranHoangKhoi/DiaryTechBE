@@ -63,12 +63,30 @@ export const createSubscriptionPackage = async (req: Request, res: Response) => 
 
 export const getAllSubscriptionPackage = async (req: Request, res: Response) => {
   try {
-    const modules = await SubscriptionPackageModel.find().sort({ module_id: 1, price_per_month: 1 });
+    const { module_id, is_active } = req.query;
+    const filter: Record<string, unknown> = {};
+
+    if (typeof module_id === 'string' && module_id) {
+      filter.module_id = module_id;
+    }
+
+    if (typeof is_active === 'string' && is_active) {
+      filter.is_active =
+        is_active === 'true'
+          ? {
+              $ne: false
+            }
+          : false;
+    }
+
+    const packages = await SubscriptionPackageModel.find(filter)
+      .populate('module_id', 'key name is_active')
+      .sort({ module_id: 1, price_per_month: 1 });
 
     res.status(200).json({
       success: true,
       message: 'Subscription packages fetched successfully.',
-      data: modules
+      data: packages
     });
   } catch (error) {
     console.error(error);

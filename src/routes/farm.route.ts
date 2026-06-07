@@ -3,7 +3,8 @@ import {
   createFarm,
   getFarmsByOwner,
   getFarmsByUserId,
-  getFarmsByUserIdFormAdmin
+  getFarmsByUserIdFormAdmin,
+  updateFarmSubAccount
 } from '~/controllers/farm.controller';
 import { addCropToFarm } from '~/controllers/farmCrop.controller';
 import { addFarmMedia } from '~/controllers/farmMedia.controller';
@@ -27,6 +28,15 @@ router.post(
 router.post('/:farmId/crops', auth, checkRole('owner'), requireAnyModuleAccess(MODULE_KEY_VALUES), addCropToFarm);
 router.post('/:farmId/media', auth, checkRole('owner'), requireAnyModuleAccess(MODULE_KEY_VALUES), addFarmMedia);
 router.post('/:farmId/reports', auth, checkRole('owner'), requireAnyModuleAccess(MODULE_KEY_VALUES), addReport);
+
+router.put(
+  '/:farmId',
+  auth,
+  checkRole('owner'),
+  requireAnyModuleAccess(MODULE_KEY_VALUES),
+  upload.fields([{ name: 'image', maxCount: 1 }]),
+  updateFarmSubAccount
+);
 
 // GET
 router.get('/byOwner', auth, requireAnyModuleAccess(MODULE_KEY_VALUES), getFarmsByOwner);
