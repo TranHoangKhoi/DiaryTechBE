@@ -13,7 +13,7 @@ export interface IInventoryMaterial extends Document {
   key: string;
   code: string;
   name: string;
-  image_url?: string;
+  images?: string[];
   supplier_name?: string;
   manufacturer?: string;
   unit: string;
@@ -64,7 +64,7 @@ const InventoryMaterialSchema = new mongoose.Schema<IInventoryMaterial>(
     key: { type: String, required: true, trim: true, lowercase: true },
     code: { type: String, required: true, trim: true, lowercase: true },
     name: { type: String, required: true, trim: true },
-    image_url: { type: String, trim: true, default: '' },
+    images: { type: [String], default: [] },
     supplier_name: { type: String, trim: true, default: '' },
     manufacturer: { type: String, trim: true, default: '' },
     unit: { type: String, required: true, trim: true },
@@ -97,7 +97,7 @@ const InventoryMaterialSchema = new mongoose.Schema<IInventoryMaterial>(
 
 InventoryMaterialSchema.pre('validate', function (next) {
   this.name = normalizeText(this.name);
-  this.image_url = normalizeText(this.image_url);
+  this.images = Array.isArray(this.images) ? this.images.map((img) => normalizeText(img)).filter(Boolean) : [];
   this.supplier_name = normalizeText(this.supplier_name);
   this.manufacturer = normalizeText(this.manufacturer);
   this.unit = normalizeText(this.unit);

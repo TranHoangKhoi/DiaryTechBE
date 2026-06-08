@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import User from '~/models/User.model';
+import Farm from '~/models/Farm.model';
 import {
   appendPublicUrlToFile,
   deleteFileServerItemByAlias,
@@ -71,7 +72,17 @@ const appendPublicUrlsToList = (data: any): any => {
 
 export const uploadFiles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const context = await getFileServerContext(req.user?.id);
+    let targetUserId = req.user?.id;
+    const { farm_id } = req.body;
+
+    if (farm_id) {
+      const farm = await Farm.findById(farm_id).select('user_id');
+      if (farm?.user_id) {
+        targetUserId = farm.user_id.toString();
+      }
+    }
+
+    const context = await getFileServerContext(targetUserId);
     if (!context) {
       res.status(503).json({ success: false, message: 'File server is not ready for this user' });
       return;
