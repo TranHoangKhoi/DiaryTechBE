@@ -165,7 +165,7 @@ export const getFarmTypeConfigByFarmTypeId = async (req: Request, res: Response)
     }
 
     if (scope && typeof scope === 'string') {
-      config.sections = config.sections.filter((sec: any) => sec.scope === scope || (!sec.scope && scope === 'book'));
+      (config as any).sections = config.sections.filter((sec: any) => sec.scope === scope || (!sec.scope && scope === 'book'));
     }
 
     res.status(200).json({
