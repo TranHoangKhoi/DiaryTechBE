@@ -41,6 +41,7 @@ const SectionSchema = new mongoose.Schema(
     key: { type: String, required: true },
     name: { type: String, required: true },
     type: { type: String, enum: ['section', 'table'], required: true },
+    scope: { type: String, enum: ['zone', 'book', 'log'], default: 'book' },
     fields: [FieldSchema],
     columns: [TableColumnSchema]
   },

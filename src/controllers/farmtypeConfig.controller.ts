@@ -32,6 +32,7 @@ const sectionSchema = z
     key: z.string().trim().min(1, 'Section key is required'),
     name: z.string().trim().min(1, 'Section name is required'),
     type: z.enum(['section', 'table']),
+    scope: z.enum(['zone', 'book', 'log']).optional().default('book'),
     fields: z.array(fieldSchema).optional(),
     columns: z.array(fieldSchema).optional()
   })
@@ -82,6 +83,7 @@ const normalizeConfigPayload = (payload: z.infer<typeof createConfigSchema> | z.
       key: section.key,
       name: section.name,
       type: section.type,
+      scope: section.scope || 'book',
       fields: section.type === 'section' ? section.fields || [] : [],
       columns: section.type === 'table' ? section.columns || [] : []
     })) ?? undefined
@@ -148,17 +150,22 @@ export const createFarmTypeConfig = async (req: Request, res: Response) => {
 export const getFarmTypeConfigByFarmTypeId = async (req: Request, res: Response) => {
   try {
     const { farm_type_id } = req.params;
+    const { scope } = req.query;
 
     if (!isValidObjectId(farm_type_id)) {
       res.status(400).json({ message: 'Invalid farm_type_id' });
       return;
     }
 
-    const config = await FarmTypeConfigModel.findOne({ farm_type_id });
+    const config = await FarmTypeConfigModel.findOne({ farm_type_id }).lean();
 
     if (!config) {
       res.status(404).json({ message: 'Config not found for this farm_type_id' });
       return;
+    }
+
+    if (scope && typeof scope === 'string') {
+      config.sections = config.sections.filter((sec: any) => sec.scope === scope || (!sec.scope && scope === 'book'));
     }
 
     res.status(200).json({

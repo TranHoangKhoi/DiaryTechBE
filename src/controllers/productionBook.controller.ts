@@ -236,6 +236,13 @@ const serializeProductionBook = (book: any, latestLogCount?: number, serializedG
         name: book.farm_type_id.type_name ?? book.farm_type_id.name ?? null
       }
     : null,
+  zone: book.zone_id
+    ? {
+        id: book.zone_id._id?.toString?.() ?? book.zone_id?.toString?.() ?? book.zone_id,
+        name: book.zone_id.name ?? null,
+        zone_type: book.zone_id.zone_type ?? null
+      }
+    : null,
   created_by: book.created_by
     ? {
         id: book.created_by._id?.toString?.() ?? book.created_by?.toString?.() ?? book.created_by,
@@ -281,10 +288,14 @@ const getLogCountByBookId = async (bookId: string) => {
   return ProductionLogModel.countDocuments({ book_id: new mongoose.Types.ObjectId(bookId) });
 };
 
-const buildListQuery = ({ farmId, search, status }: { farmId: string; search?: string; status?: string }) => {
+const buildListQuery = ({ farmId, zoneId, search, status }: { farmId: string; zoneId?: string; search?: string; status?: string }) => {
   const query: Record<string, any> = {
     ...buildBaseFilter(farmId)
   };
+
+  if (zoneId) {
+    query.zone_id = zoneId;
+  }
 
   if (search) {
     const regex = new RegExp(escapeRegExp(search), 'i');
@@ -368,7 +379,7 @@ const getFarmAndConfig = async (farmId: string, farmTypeId: string) => {
 export const createProductionBook = async (req: Request, res: Response) => {
   try {
     const user = getUserContext(req);
-    const { name, description, production, image, start_date, end_date, general_info, farm_id, farm_type_id, status } =
+    const { name, description, production, image, start_date, end_date, general_info, farm_id, farm_type_id, zone_id, status } =
       req.body;
 
     if (!user) {
@@ -419,6 +430,11 @@ export const createProductionBook = async (req: Request, res: Response) => {
       return;
     }
 
+    if (zone_id && !Types.ObjectId.isValid(zone_id)) {
+      res.status(400).json({ success: false, message: 'Invalid zone_id' });
+      return;
+    }
+
     const newBook = await ProductionBookModel.create({
       name,
       description,
@@ -429,12 +445,14 @@ export const createProductionBook = async (req: Request, res: Response) => {
       general_info: general_info ?? {},
       farm_id,
       farm_type_id,
+      zone_id: zone_id || null,
       created_by: user.id,
       status: status ?? 'ongoing'
     });
 
     await newBook.populate('farm_id', 'farm_name');
     await newBook.populate('farm_type_id', 'type_name');
+    await newBook.populate('zone_id', 'name zone_type');
     await newBook.populate('created_by', 'name avatar');
 
     res.status(201).json({
@@ -474,8 +492,11 @@ export const getProductionBookByFarm = async (req: Request, res: Response) => {
       return;
     }
 
+    const zoneId = typeof req.query.zone_id === 'string' ? req.query.zone_id.trim() : undefined;
+
     const query = buildListQuery({
       farmId,
+      zoneId,
       search,
       status: status === 'all' ? undefined : status
     });
@@ -484,6 +505,7 @@ export const getProductionBookByFarm = async (req: Request, res: Response) => {
     const books = await ProductionBookModel.find(query)
       .populate('farm_id', 'farm_name')
       .populate('farm_type_id', 'type_name')
+      .populate('zone_id', 'name zone_type')
       .populate('created_by', 'name avatar')
       .sort({ start_date: sort, createdAt: sort })
       .skip((page - 1) * limit)
@@ -606,6 +628,7 @@ export const getProductionBookById = async (req: Request, res: Response) => {
 
     await book.populate('farm_id', 'farm_name');
     await book.populate('farm_type_id', 'type_name');
+    await book.populate('zone_id', 'name zone_type');
     await book.populate('created_by', 'name avatar');
 
     const farmTypeId = String((book.farm_type_id as any)?._id ?? book.farm_type_id);
@@ -629,7 +652,7 @@ export const updateProductionBook = async (req: Request, res: Response) => {
   try {
     const user = getUserContext(req);
     const bookId = req.params.bookId;
-    const { name, description, image, end_date, status, general_info } = req.body;
+    const { name, description, image, end_date, status, general_info, zone_id } = req.body;
 
     if (!Types.ObjectId.isValid(bookId)) {
       res.status(400).json({ success: false, message: 'Invalid bookId' });
@@ -674,10 +697,21 @@ export const updateProductionBook = async (req: Request, res: Response) => {
     if (end_date !== undefined) book.end_date = end_date ? parseDate(end_date) : undefined;
     if (status !== undefined) book.status = status;
     if (general_info !== undefined) book.general_info = general_info;
+    if (zone_id !== undefined) {
+      if (zone_id === null || zone_id === '') {
+        book.zone_id = null;
+      } else if (Types.ObjectId.isValid(zone_id)) {
+        book.zone_id = zone_id;
+      } else {
+        res.status(400).json({ success: false, message: 'Invalid zone_id' });
+        return;
+      }
+    }
 
     await book.save();
     await book.populate('farm_id', 'farm_name');
     await book.populate('farm_type_id', 'type_name');
+    await book.populate('zone_id', 'name zone_type');
     await book.populate('created_by', 'name avatar');
 
     res.status(200).json({
@@ -776,6 +810,7 @@ export const getManageProductionBooks = async (req: Request, res: Response) => {
     const books = await ProductionBookModel.find(query)
       .populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id')
       .populate('farm_type_id', 'type_name image description')
+      .populate('zone_id', 'name zone_type')
       .populate('created_by', 'name avatar role')
       .sort({ start_date: sort, createdAt: sort })
       .skip((page - 1) * limit)

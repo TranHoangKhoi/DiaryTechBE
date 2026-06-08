@@ -3,6 +3,7 @@ import mongoose, { Document } from 'mongoose';
 export interface IProductionBook extends Document {
   farm_id: mongoose.Types.ObjectId;
   farm_type_id: mongoose.Types.ObjectId;
+  zone_id?: mongoose.Types.ObjectId | null;
   name: string; // "Vụ mùa xuân 2025" hoặc "Ao 1"
   description?: string;
   production: string;
@@ -19,6 +20,7 @@ const ProductionBookSchema = new mongoose.Schema<IProductionBook>(
   {
     farm_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Farm', required: true },
     farm_type_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Farmtype', required: true },
+    zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'FarmZone', default: null },
     name: { type: String, required: true },
     production: { type: String, required: true },
     description: { type: String },
