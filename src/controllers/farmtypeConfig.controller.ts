@@ -15,6 +15,7 @@ const fieldSchema = z
     label: z.string().trim().min(1, 'Field label is required'),
     type: z.enum(['text', 'number', 'date', 'select', 'textarea']),
     required: z.boolean().optional(),
+    autoFill: z.string().optional(),
     options: z.array(optionSchema).optional()
   })
   .superRefine((field, ctx) => {

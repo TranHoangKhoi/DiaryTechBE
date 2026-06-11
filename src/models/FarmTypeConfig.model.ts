@@ -8,6 +8,7 @@ const FieldSchema = new mongoose.Schema(
     label: { type: String, required: true },
     type: { type: String, required: true }, // text, number, date, select
     required: { type: Boolean, default: false },
+    autoFill: { type: String }, // <-- Thêm trường autoFill
     options: [
       {
         label: String,
@@ -25,6 +26,7 @@ const TableColumnSchema = new mongoose.Schema(
     label: { type: String, required: true },
     type: { type: String, required: true }, // text | number | select
     required: { type: Boolean, default: false },
+    autoFill: { type: String }, // <-- Thêm trường autoFill
     options: [
       {
         label: String,
