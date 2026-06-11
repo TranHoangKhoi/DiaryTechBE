@@ -10,6 +10,12 @@ import mongoose, { Types } from 'mongoose';
 import { roleUser } from '~/config/constant';
 import { syncUserFileServer } from '~/services/userFileServerSync.service';
 import { createOwnerSubscription } from '~/services/userSubscription.service';
+import UserSubscription from '../models/UserSubscription.model';
+import FarmZone from '../models/FarmZone.model';
+import InventoryMaterial from '../models/InventoryMaterial.model';
+import InventoryStock from '../models/InventoryStock.model';
+import InventoryLog from '../models/InventoryLog.model';
+import ProductionBook from '../models/ProductionBook.model';
 
 // Schema validation với Zod
 const registerSchema = z.object({
@@ -67,26 +73,25 @@ const registerOwnerSchema = z.object({
     })
     .optional()
 });
-
 export const getFarmer = async (req: Request, res: Response) => {
   try {
     const ownerId = req?.user?.id;
+    const { status } = req.query;
     console.log('ownerId: ', ownerId);
 
-    // Kiểm tra ownerId có hợp lệ không
     if (!ownerId || !Types.ObjectId.isValid(ownerId)) {
       res.status(400).json({ message: 'Invalid owner ID' });
       return;
     }
 
-    // Truy vấn danh sách user với owner_id
-    const listFarmer = await User.find({ owner_id: ownerId }).exec();
-
-    // Kiểm tra xem có dữ liệu hay không
-    if (!listFarmer || listFarmer.length === 0) {
-      res.status(404).json({ message: 'No users found for this owner' });
-      return;
+    const query: any = { owner_id: ownerId };
+    if (status === 'active') {
+      query.status = { $ne: 'deleted' };
+    } else if (status === 'deleted') {
+      query.status = 'deleted';
     }
+
+    const listFarmer = await User.find(query).exec();
 
     res.status(200).json(listFarmer);
   } catch (error) {
@@ -380,3 +385,146 @@ export const registerOwner = async (req: Request, res: Response): Promise<void> 
     session.endSession();
   }
 };
+
+export const softDeleteFarmer = async (req: Request, res: Response): Promise<void> => {
+  const session = await mongoose.startSession();
+  try {
+    const ownerId = req.user?.id;
+    const farmerId = req.params.id;
+
+    if (!ownerId || !Types.ObjectId.isValid(ownerId)) {
+      res.status(400).json({ success: false, message: 'Invalid owner ID' });
+      return;
+    }
+    if (!farmerId || !Types.ObjectId.isValid(farmerId)) {
+      res.status(400).json({ success: false, message: 'Invalid farmer ID' });
+      return;
+    }
+
+    await session.withTransaction(async () => {
+      const user = await User.findOneAndUpdate(
+        { _id: farmerId, owner_id: ownerId, status: { $ne: 'deleted' } },
+        { status: 'deleted' },
+        { session, new: true }
+      );
+
+      if (!user) {
+        throw Object.assign(new Error('Farmer not found or already deleted'), { statusCode: 404 });
+      }
+
+      await Farm.updateMany(
+        { user_id: farmerId },
+        { farm_status: 'deleted' },
+        { session }
+      );
+    });
+
+    res.status(200).json({ success: true, message: 'Farmer and associated farms have been soft deleted' });
+  } catch (error) {
+    const statusCode = error instanceof Error && 'statusCode' in error ? Number((error as any).statusCode) : 500;
+    res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : 'Internal server error' });
+  } finally {
+    session.endSession();
+  }
+};
+
+export const hardDeleteFarmer = async (req: Request, res: Response): Promise<void> => {
+  const session = await mongoose.startSession();
+  try {
+    const ownerId = req.user?.id;
+    const farmerId = req.params.id;
+
+    if (!ownerId || !Types.ObjectId.isValid(ownerId)) {
+      res.status(400).json({ success: false, message: 'Invalid owner ID' });
+      return;
+    }
+    if (!farmerId || !Types.ObjectId.isValid(farmerId)) {
+      res.status(400).json({ success: false, message: 'Invalid farmer ID' });
+      return;
+    }
+
+    await session.withTransaction(async () => {
+      // 1. Ensure user is soft deleted and belongs to owner
+      const user = await User.findOne({ _id: farmerId, owner_id: ownerId, status: 'deleted' }).session(session);
+      if (!user) {
+        throw Object.assign(new Error('Farmer must be soft deleted first before hard delete'), { statusCode: 400 });
+      }
+
+      // 2. Find farms
+      const farms = await Farm.find({ user_id: farmerId }).session(session);
+      const farmIds = farms.map(f => f._id);
+
+      if (farmIds.length > 0) {
+        // 3. Cascading Delete
+        await ProductionLog.deleteMany({ farm_id: { $in: farmIds } }).session(session);
+        await ProductionBook.deleteMany({ farm_id: { $in: farmIds } }).session(session);
+        await InventoryLog.deleteMany({ farm_id: { $in: farmIds } }).session(session);
+        await InventoryStock.deleteMany({ farm_id: { $in: farmIds } }).session(session);
+        await InventoryMaterial.deleteMany({ farm_id: { $in: farmIds } }).session(session);
+        await FarmZone.deleteMany({ farm_id: { $in: farmIds } }).session(session);
+        await Farm.deleteMany({ user_id: farmerId }).session(session);
+      }
+
+      // 4. Delete user
+      await User.deleteOne({ _id: farmerId }).session(session);
+
+      // 5. Restore remaining_sub_accounts
+      await UserSubscription.findOneAndUpdate(
+        { user_id: ownerId },
+        { $inc: { remaining_sub_accounts: 1 } },
+        { session }
+      );
+    });
+
+    res.status(200).json({ success: true, message: 'Farmer permanently deleted' });
+  } catch (error) {
+    const statusCode = error instanceof Error && 'statusCode' in error ? Number((error as any).statusCode) : 500;
+    res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : 'Internal server error' });
+  } finally {
+    session.endSession();
+  }
+};
+
+export const restoreFarmer = async (req: Request, res: Response): Promise<void> => {
+  const session = await mongoose.startSession();
+  try {
+    const ownerId = req.user?.id;
+    const farmerId = req.params.id;
+
+    if (!ownerId || !Types.ObjectId.isValid(ownerId)) {
+      res.status(400).json({ success: false, message: 'Invalid owner ID' });
+      return;
+    }
+    if (!farmerId || !Types.ObjectId.isValid(farmerId)) {
+      res.status(400).json({ success: false, message: 'Invalid farmer ID' });
+      return;
+    }
+
+    await session.withTransaction(async () => {
+      const user = await User.findOneAndUpdate(
+        { _id: farmerId, owner_id: ownerId, status: 'deleted' },
+        { status: 'active' },
+        { session, new: true }
+      );
+
+      if (!user) {
+        throw Object.assign(new Error('Farmer not found or is not deleted'), { statusCode: 404 });
+      }
+
+      await Farm.updateMany(
+        { user_id: farmerId, farm_status: 'deleted' },
+        { farm_status: 'active' },
+        { session }
+      );
+    });
+
+    res.status(200).json({ success: true, message: 'Farmer and associated farms have been restored' });
+  } catch (error) {
+    console.error("restoreFarmer Error:", error);
+    const statusCode = error instanceof Error && 'statusCode' in error ? Number((error as any).statusCode) : 500;
+    res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : String(error) });
+  } finally {
+    session.endSession();
+  }
+};
+

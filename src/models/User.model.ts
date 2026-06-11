@@ -62,7 +62,7 @@ export interface IUser extends Document {
   role: 'superadmin' | 'admin' | 'owner' | 'sub_account';
   owner_id?: mongoose.Types.ObjectId; // nếu là sub_account
   allowed_modules?: ModuleKey[];
-  status: 'active' | 'inactive' | 'suspended';
+  status: 'active' | 'inactive' | 'suspended' | 'deleted';
   file_server_client?: IUserFileServerClient;
   file_server_folders?: IUserFileServerFolder[];
   file_server_sync_status: FileServerSyncStatus;
@@ -75,7 +75,7 @@ export interface IUser extends Document {
 }
 
 const listRole = ['superadmin', 'admin', 'owner', 'sub_account'];
-const listStatus = ['active', 'inactive', 'suspended'];
+const listStatus = ['active', 'inactive', 'suspended', 'deleted'];
 const fileServerSyncStatuses: FileServerSyncStatus[] = ['pending', 'synced', 'failed'];
 const EXTERNAL_ID_RETRY_LIMIT = 10;
 

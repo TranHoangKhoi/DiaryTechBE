@@ -37,7 +37,7 @@ export interface IFarm extends Document {
   unit: 'm2' | 'ha';
   avatar: string;
   soil_type?: string;
-  farm_status: 'active' | 'inactive' | 'under_maintenance';
+  farm_status: 'active' | 'inactive' | 'under_maintenance' | 'deleted';
   description?: string;
   province: IProvince;
   ward: IWard;
@@ -102,7 +102,7 @@ const FarmSchema = new mongoose.Schema<IFarm>({
   soil_type: { type: String },
   farm_status: {
     type: String,
-    enum: ['active', 'inactive', 'under_maintenance'],
+    enum: ['active', 'inactive', 'under_maintenance', 'deleted'],
     default: 'active'
   },
   description: { type: String },

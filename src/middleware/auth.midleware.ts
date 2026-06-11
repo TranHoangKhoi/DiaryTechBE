@@ -41,6 +41,10 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction):
       return res.status(401).json({ message: 'User not found' });
     }
 
+    if (accessContext.status === 'deleted') {
+      return res.status(401).json({ message: 'User account has been deleted' });
+    }
+
     if (accessContext.status !== 'active') {
       return res.status(403).json({ message: 'User is not active' });
     }
