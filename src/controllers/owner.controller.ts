@@ -91,7 +91,7 @@ export const getFarmer = async (req: Request, res: Response) => {
       query.status = 'deleted';
     }
 
-    const listFarmer = await User.find(query).exec();
+    const listFarmer = await User.find(query).setOptions({ includeDeleted: true }).exec();
 
     res.status(200).json(listFarmer);
   } catch (error) {
@@ -114,7 +114,7 @@ export const getFarmerById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const farmerInfo = await User.findById(idFarmer).exec();
+    const farmerInfo = await User.findById(idFarmer).setOptions({ includeDeleted: true }).exec();
     if (!farmerInfo) {
       res.status(404).json({ message: 'No users found for this owner' });
       return;
@@ -445,13 +445,13 @@ export const hardDeleteFarmer = async (req: Request, res: Response): Promise<voi
 
     await session.withTransaction(async () => {
       // 1. Ensure user is soft deleted and belongs to owner
-      const user = await User.findOne({ _id: farmerId, owner_id: ownerId, status: 'deleted' }).session(session);
+      const user = await User.findOne({ _id: farmerId, owner_id: ownerId, status: 'deleted' }).setOptions({ includeDeleted: true }).session(session);
       if (!user) {
         throw Object.assign(new Error('Farmer must be soft deleted first before hard delete'), { statusCode: 400 });
       }
 
       // 2. Find farms
-      const farms = await Farm.find({ user_id: farmerId }).session(session);
+      const farms = await Farm.find({ user_id: farmerId }).setOptions({ includeDeleted: true }).session(session);
       const farmIds = farms.map(f => f._id);
 
       if (farmIds.length > 0) {

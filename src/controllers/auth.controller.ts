@@ -67,7 +67,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       req.body
     );
 
-    const existedUser = await User.findOne({ phone });
+    const existedUser = await User.findOne({ phone }).setOptions({ includeDeleted: true });
     if (existedUser) {
       res.status(400).json({ message: 'User already exists' });
       return;
@@ -190,7 +190,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone, password } = loginSchema.parse(req.body);
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ phone }).setOptions({ includeDeleted: true });
 
     if (!user) {
       res.status(400).json({ message: 'Số điện thoại hoặc mật khẩu không đúng' });

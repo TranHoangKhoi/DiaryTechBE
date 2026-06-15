@@ -193,8 +193,30 @@ UserSchema.pre<IUser>('save', async function (next) {
 });
 
 UserSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
-  return await bcrypt.compare(password, this.password);
+  return bcrypt.compare(password, this.password);
 };
+
+// Global Middleware to ignore deleted users
+UserSchema.pre(/^find/, function (next) {
+  if (this.getOptions().includeDeleted !== true) {
+    this.where({ status: { $ne: 'deleted' } });
+  }
+  next();
+});
+
+UserSchema.pre('countDocuments', function (next) {
+  if (this.getOptions().includeDeleted !== true) {
+    this.where({ status: { $ne: 'deleted' } });
+  }
+  next();
+});
+
+UserSchema.pre('aggregate', function (next) {
+  if (this.options?.includeDeleted !== true) {
+    this.pipeline().unshift({ $match: { status: { $ne: 'deleted' } } });
+  }
+  next();
+});
 
 // UserSchema.index({ phone: 1 }, { unique: true }); // index này đã được tạo tự động bởi { unique: true } ở trên
 UserSchema.index({ external_id: 1 }, { unique: true });
