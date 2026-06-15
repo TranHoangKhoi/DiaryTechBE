@@ -24,6 +24,7 @@ import inventoryMaterialRoutes from './routes/inventoryMaterial.route';
 import inventoryStockRoutes from './routes/inventoryStock.route';
 import fileRoutes from './routes/file.route';
 import farmZoneRoutes from './routes/farmZone.route';
+import farmDiagramRoutes from './routes/farmDiagram.route';
 
 const app: Express = express();
 app.set('trust proxy', 1);
@@ -64,5 +65,6 @@ app.use('/api/inventory', inventoryMaterialRoutes);
 app.use('/api/inventory', inventoryStockRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/farmZone', farmZoneRoutes);
+app.use('/api/farm-diagram', farmDiagramRoutes);
 
 export default app;

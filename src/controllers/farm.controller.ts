@@ -516,7 +516,7 @@ export const getFarmsByUserId = async (req: Request, res: Response) => {
     // Lấy farm đầu tiên theo user_id
     const farm = await FarmModel.findOne({ user_id: userId })
       .populate('owner_id', 'name avatar')
-      .populate('user_id', 'name phone avatar role owner_id status')
+      .populate('user_id', 'name phone avatar role owner_id status cccd date_of_birth address gender province ward')
       .populate('farm_type_id', 'type_name');
 
     if (!farm) {
@@ -544,7 +544,7 @@ export const getFarmsByUserIdFormAdmin = async (req: Request, res: Response) => 
     // Tìm tất cả farm có user_id trùng với userId
     const farms = await FarmModel.findOne({ user_id: userId })
       .populate('owner_id', 'name avatar')
-      .populate('user_id', 'name phone avatar role owner_id status')
+      .populate('user_id', 'name phone avatar role owner_id status cccd date_of_birth address gender province ward')
       .populate('farm_type_id', 'type_name');
 
     res.status(200).json({
