@@ -198,15 +198,17 @@ UserSchema.methods.comparePassword = async function (password: string): Promise<
 
 // Global Middleware to ignore deleted users
 UserSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeDeleted !== true) {
-    this.where({ status: { $ne: 'deleted' } });
+  const query = this as any;
+  if (query.getOptions().includeDeleted !== true) {
+    query.where({ status: { $ne: 'deleted' } });
   }
   next();
 });
 
 UserSchema.pre('countDocuments', function (next) {
-  if (this.getOptions().includeDeleted !== true) {
-    this.where({ status: { $ne: 'deleted' } });
+  const query = this as any;
+  if (query.getOptions().includeDeleted !== true) {
+    query.where({ status: { $ne: 'deleted' } });
   }
   next();
 });

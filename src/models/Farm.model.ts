@@ -126,15 +126,17 @@ FarmSchema.index({ owner_id: 1, farm_type_id: 1 });
 
 // Global Middleware to ignore deleted farms
 FarmSchema.pre(/^find/, function (next) {
-  if (this.getOptions().includeDeleted !== true) {
-    this.where({ farm_status: { $ne: 'deleted' } });
+  const query = this as any;
+  if (query.getOptions().includeDeleted !== true) {
+    query.where({ farm_status: { $ne: 'deleted' } });
   }
   next();
 });
 
 FarmSchema.pre('countDocuments', function (next) {
-  if (this.getOptions().includeDeleted !== true) {
-    this.where({ farm_status: { $ne: 'deleted' } });
+  const query = this as any;
+  if (query.getOptions().includeDeleted !== true) {
+    query.where({ farm_status: { $ne: 'deleted' } });
   }
   next();
 });
