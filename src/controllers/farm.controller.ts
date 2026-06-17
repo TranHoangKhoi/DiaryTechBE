@@ -4,6 +4,7 @@ import { Crop } from '~/models/CropCategories';
 import FarmModel from '~/models/Farm.model';
 import { FarmCrop } from '~/models/FarmCrop.model';
 import FarmtypeModel from '~/models/Farmtype.model';
+import FarmZoneModel from '~/models/FarmZone.model';
 import ServiceModuleModel from '~/models/ServiceModule.model';
 import UserSubscriptionModel from '~/models/UserSubscription.model';
 import UserModel from '~/models/User.model';
@@ -26,8 +27,9 @@ const parseJsonField = <T>(value: unknown): T | unknown => {
 const normalizeAllowedModules = (value: unknown) => {
   const parsed = parseJsonField<unknown>(value);
   const rows = Array.isArray(parsed) ? parsed : [];
-  return rows.filter((item): item is (typeof MODULE_KEYS)[keyof typeof MODULE_KEYS] =>
-    typeof item === 'string' && Object.values(MODULE_KEYS).includes(item as any)
+  return rows.filter(
+    (item): item is (typeof MODULE_KEYS)[keyof typeof MODULE_KEYS] =>
+      typeof item === 'string' && Object.values(MODULE_KEYS).includes(item as any)
   );
 };
 
@@ -480,27 +482,51 @@ export const getFarmsByOwner = async (req: Request, res: Response) => {
   try {
     const ownerId = req.user?.id;
 
-    console.log('ownerId: ', ownerId);
-
     if (!ownerId) {
       res.status(400).json({ message: 'Thiếu ownerId' });
       return;
     }
 
-    const farms = await FarmModel.find({ owner_id: ownerId }).populate('farm_type_id').populate('user_id').lean();
+    const { includeDeleted } = req.query;
+    const isIncludeDeleted = includeDeleted === 'true';
+
+    const farmsQuery = FarmModel.find({ owner_id: ownerId });
+    if (isIncludeDeleted) {
+      farmsQuery.setOptions({ includeDeleted: true });
+      farmsQuery.populate({ path: 'user_id', options: { includeDeleted: true } });
+    } else {
+      farmsQuery.populate('user_id');
+    }
+
+    const farms = await farmsQuery.populate('farm_type_id').lean();
+    const farmIds = farms.map((farm) => farm._id);
+
     const farmCrops = await FarmCrop.find({
-      farm_id: { $in: farms.map((farm) => farm._id) },
+      farm_id: { $in: farmIds },
       is_primary: true
     })
       .select('farm_id crop_id')
       .lean();
     const cropMap = new Map(farmCrops.map((farmCrop) => [String(farmCrop.farm_id), String(farmCrop.crop_id)]));
 
+    // Dùng find() thay vì aggregate() vì Mongoose find() tự cast type farm_id theo schema (ObjectId)
+    // Aggregate không auto-cast, dẫn đến type mismatch khi so sánh ObjectId vs String
+    const farmZones = await FarmZoneModel.find({ farm_id: { $in: farmIds } })
+      .select('farm_id')
+      .lean();
+
+    const farmZoneMap = new Map<string, number>();
+    for (const zone of farmZones) {
+      const key = String(zone.farm_id);
+      farmZoneMap.set(key, (farmZoneMap.get(key) || 0) + 1);
+    }
+
     res.status(200).json({
       success: true,
       data: farms.map((farm) => ({
         ...farm,
-        crop_id: cropMap.get(String(farm._id)) || ''
+        crop_id: cropMap.get(String(farm._id)) || '',
+        total_farm_zones: farmZoneMap.get(String(farm._id)) || 0
       }))
     });
   } catch (error: any) {

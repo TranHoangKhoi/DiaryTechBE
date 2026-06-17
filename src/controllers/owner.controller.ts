@@ -412,17 +412,15 @@ export const softDeleteFarmer = async (req: Request, res: Response): Promise<voi
         throw Object.assign(new Error('Farmer not found or already deleted'), { statusCode: 404 });
       }
 
-      await Farm.updateMany(
-        { user_id: farmerId },
-        { farm_status: 'deleted' },
-        { session }
-      );
+      await Farm.updateMany({ user_id: farmerId }, { farm_status: 'deleted' }, { session });
     });
 
     res.status(200).json({ success: true, message: 'Farmer and associated farms have been soft deleted' });
   } catch (error) {
     const statusCode = error instanceof Error && 'statusCode' in error ? Number((error as any).statusCode) : 500;
-    res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : 'Internal server error' });
+    res
+      .status(statusCode)
+      .json({ success: false, message: error instanceof Error ? error.message : 'Internal server error' });
   } finally {
     session.endSession();
   }
@@ -445,14 +443,16 @@ export const hardDeleteFarmer = async (req: Request, res: Response): Promise<voi
 
     await session.withTransaction(async () => {
       // 1. Ensure user is soft deleted and belongs to owner
-      const user = await User.findOne({ _id: farmerId, owner_id: ownerId, status: 'deleted' }).setOptions({ includeDeleted: true }).session(session);
+      const user = await User.findOne({ _id: farmerId, owner_id: ownerId, status: 'deleted' })
+        .setOptions({ includeDeleted: true })
+        .session(session);
       if (!user) {
         throw Object.assign(new Error('Farmer must be soft deleted first before hard delete'), { statusCode: 400 });
       }
 
       // 2. Find farms
       const farms = await Farm.find({ user_id: farmerId }).setOptions({ includeDeleted: true }).session(session);
-      const farmIds = farms.map(f => f._id);
+      const farmIds = farms.map((f) => f._id);
 
       if (farmIds.length > 0) {
         // 3. Cascading Delete
@@ -479,7 +479,9 @@ export const hardDeleteFarmer = async (req: Request, res: Response): Promise<voi
     res.status(200).json({ success: true, message: 'Farmer permanently deleted' });
   } catch (error) {
     const statusCode = error instanceof Error && 'statusCode' in error ? Number((error as any).statusCode) : 500;
-    res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : 'Internal server error' });
+    res
+      .status(statusCode)
+      .json({ success: false, message: error instanceof Error ? error.message : 'Internal server error' });
   } finally {
     session.endSession();
   }
@@ -505,26 +507,21 @@ export const restoreFarmer = async (req: Request, res: Response): Promise<void> 
         { _id: farmerId, owner_id: ownerId, status: 'deleted' },
         { status: 'active' },
         { session, new: true }
-      );
+      ).setOptions({ includeDeleted: true });
 
       if (!user) {
         throw Object.assign(new Error('Farmer not found or is not deleted'), { statusCode: 404 });
       }
 
-      await Farm.updateMany(
-        { user_id: farmerId, farm_status: 'deleted' },
-        { farm_status: 'active' },
-        { session }
-      );
+      await Farm.updateMany({ user_id: farmerId, farm_status: 'deleted' }, { farm_status: 'active' }, { session });
     });
 
     res.status(200).json({ success: true, message: 'Farmer and associated farms have been restored' });
   } catch (error) {
-    console.error("restoreFarmer Error:", error);
+    console.error('restoreFarmer Error:', error);
     const statusCode = error instanceof Error && 'statusCode' in error ? Number((error as any).statusCode) : 500;
     res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : String(error) });
   } finally {
     session.endSession();
   }
 };
-
