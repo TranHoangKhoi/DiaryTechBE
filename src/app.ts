@@ -69,6 +69,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/farmZone', farmZoneRoutes);
 app.use('/api/farm-diagram', farmDiagramRoutes);
 app.use('/api/internal/workflows', workflowRoutes);
+app.use('/api/workflows', workflowRoutes);
 app.use('/api/system-config', systemConfigRoutes);
 
 export default app;
