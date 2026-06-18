@@ -29,6 +29,8 @@ import {
   syncInventoryStockFromLog
 } from '~/services/inventoryStock.service';
 import { syncSharedFieldValuesFromInventoryLog } from '~/services/sharedFieldValue.service';
+import InventoryStockModel from '../models/InventoryStock.model';
+import SystemConfigModel from '../models/SystemConfig.model';
 
 const parsePositiveInt = (value: unknown, fallback: number, max = 100) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -93,7 +95,8 @@ const fieldSchema = z
         category: z.string().trim().optional(),
         auto_fill: z.record(z.string()).optional()
       })
-      .optional()
+      .optional(),
+    autoFill: z.string().trim().optional()
   })
   .superRefine((field, ctx) => {
     if (
@@ -799,8 +802,21 @@ export const createInventoryLog = async (req: Request, res: Response): Promise<v
     }
 
     const logDate = payload.log_date || payload.date || new Date();
-    const quantity =
+    const resolvedQuantity =
       typeof payload.quantity === 'number' ? payload.quantity : resolveInventoryLogQuantity(template, nextData);
+
+    if (resolvedMaterialId && resolvedQuantity > 0 && payload.transaction_type === 'out') {
+      const systemConfig = await SystemConfigModel.findOne();
+      const allowNegative = systemConfig?.allow_negative_stock || false;
+      if (!allowNegative) {
+        const stock = await InventoryStockModel.findOne({ farm_id: farm._id, material_id: resolvedMaterialId }).select('quantity_on_hand');
+        const currentStock = stock?.quantity_on_hand || 0;
+        if (currentStock < resolvedQuantity) {
+          res.status(400).json({ message: `Vật tư không đủ. Khả dụng: ${currentStock}` });
+          return;
+        }
+      }
+    }
     const materialSnapshot = material ? normalizeMaterialSnapshot(material) : payload.material_snapshot || undefined;
 
     const log = await InventoryLogModel.create({
@@ -809,7 +825,7 @@ export const createInventoryLog = async (req: Request, res: Response): Promise<v
       book_id: normalizedBookId || undefined,
       material_id: resolvedMaterialId || undefined,
       log_date: logDate,
-      quantity,
+      quantity: resolvedQuantity,
       unit: payload.unit || materialSnapshot?.unit || '',
       material_snapshot: materialSnapshot,
       data: nextData,
@@ -829,7 +845,7 @@ export const createInventoryLog = async (req: Request, res: Response): Promise<v
 
     await syncInventorySharedValuesSafely({ farm, template, log });
 
-    if (resolvedMaterialId && quantity > 0) {
+    if (resolvedMaterialId && resolvedQuantity > 0) {
       await syncInventoryStockFromLog({
         farmId: String(farm._id),
         materialId: String(resolvedMaterialId),
@@ -838,7 +854,7 @@ export const createInventoryLog = async (req: Request, res: Response): Promise<v
         supplierName: material?.supplier_name || materialSnapshot?.supplier_name || '',
         unit: payload.unit || materialSnapshot?.unit || material?.unit || '',
         category: template.category,
-        quantity,
+        quantity: resolvedQuantity,
         transactionType: payload.transaction_type,
         logId: String(log._id)
       });

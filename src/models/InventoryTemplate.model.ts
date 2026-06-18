@@ -23,6 +23,7 @@ export interface IInventoryTemplateField {
     category?: string;
     auto_fill?: Record<string, string>;
   };
+  autoFill?: string;
 }
 
 export interface IInventoryTemplateSchemaItem {
@@ -77,7 +78,8 @@ const InventoryTemplateFieldSchema = new mongoose.Schema<IInventoryTemplateField
         of: String,
         default: undefined
       }
-    }
+    },
+    autoFill: { type: String, trim: true }
   },
   { _id: false }
 );

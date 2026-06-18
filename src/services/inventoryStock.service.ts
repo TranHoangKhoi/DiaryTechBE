@@ -173,7 +173,7 @@ const applyInventoryStockDelta = async ({
   if (!Number.isFinite(delta) || delta === 0) return;
 
   const current = await InventoryStockModel.findOne({ farm_id: farmId, material_id: materialId });
-  const nextQuantity = Math.max(0, (current?.quantity_on_hand || 0) + delta);
+  const nextQuantity = (current?.quantity_on_hand || 0) + delta;
 
   await InventoryStockModel.findOneAndUpdate(
     { farm_id: farmId, material_id: materialId },

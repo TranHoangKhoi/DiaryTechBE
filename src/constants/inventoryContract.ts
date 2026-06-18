@@ -7,12 +7,7 @@ export const INVENTORY_LOG_STATUSES = ['draft', 'submitted', 'approved'] as cons
 export const INVENTORY_TRANSACTION_TYPES = ['in', 'out', 'adjustment', 'transfer', 'stocktake'] as const;
 export const INVENTORY_MATERIAL_LOOKUP_MODEL = 'InventoryMaterial' as const;
 
-export const INVENTORY_MATERIAL_SNAPSHOT_FIELDS = [
-  'material_name',
-  'supplier_name',
-  'manufacturer',
-  'unit'
-] as const;
+export const INVENTORY_MATERIAL_SNAPSHOT_FIELDS = ['material_name', 'supplier_name', 'manufacturer', 'unit'] as const;
 
 export const INVENTORY_QUANTITY_FIELD_KEYS = [
   'quantity',

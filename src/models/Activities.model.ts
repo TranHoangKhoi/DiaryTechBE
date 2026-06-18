@@ -11,12 +11,14 @@ interface IActivities extends Document {
       field_name: string;
       field_type: string;
       is_required: boolean;
+      autoFill?: string;
       options: string[];
       is_shared: boolean;
       shared_scope?: string;
       shared_mode?: string;
     }
   ];
+  supported_material_categories: string[];
 }
 
 const ActivitySchema = new mongoose.Schema(
@@ -35,12 +37,14 @@ const ActivitySchema = new mongoose.Schema(
         field_name: { type: String, required: true },
         field_type: { type: String, required: true },
         is_required: { type: Boolean, default: false },
+        autoFill: { type: String, default: undefined },
         options: { type: [String] },
         is_shared: { type: Boolean, default: false },
         shared_scope: { type: String, enum: ['farm', 'farm_type'], default: undefined },
         shared_mode: { type: String, enum: ['suggest', 'latest'], default: undefined }
       }
-    ]
+    ],
+    supported_material_categories: { type: [String], default: [] }
   },
   {
     timestamps: true // ✅ tự tạo createdAt và updatedAt

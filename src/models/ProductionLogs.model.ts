@@ -6,6 +6,7 @@ interface IProductionLog extends Document {
   book_id: string;
   date: Date;
   data: Record<string, unknown>; // dữ liệu form động
+  inventory_log_id?: string;
   // chemical_usages: [
   //   {
   //     chemical_id: string;
@@ -27,6 +28,7 @@ const ProductionLogSchema = new mongoose.Schema({
   book_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductionBook', required: true },
   date: { type: Date, required: true },
   data: { type: Object, default: {} }, // dữ liệu form động
+  inventory_log_id: { type: mongoose.Schema.Types.ObjectId, ref: 'InventoryLog' },
   // chemical_usages: [
   //   {
   //     chemical_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Chemical', required: true },

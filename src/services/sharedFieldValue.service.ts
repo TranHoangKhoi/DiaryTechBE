@@ -16,6 +16,9 @@ type ActivityFieldLike = {
   key?: string;
   field_name?: string;
   field_type?: string;
+  is_shared?: boolean;
+  shared_scope?: string;
+  shared_mode?: string;
 };
 
 type ActivityLike = {
@@ -30,6 +33,10 @@ type FarmLike = {
 
 type SharedHistoryFieldLike = {
   key?: string;
+  field_name?: string;
+  is_shared?: boolean;
+  shared_scope?: string;
+  shared_mode?: string;
 };
 
 type BookLike = {
@@ -172,7 +179,8 @@ const createSharedFieldUpsert = ({
   value,
   sourceLogId,
   sourceBookId = null,
-  sourceActivityId = null
+  sourceActivityId = null,
+  scopeType
 }: {
   farm: FarmLike;
   fieldKey: string;
@@ -182,18 +190,20 @@ const createSharedFieldUpsert = ({
   sourceLogId: mongoose.Types.ObjectId | unknown;
   sourceBookId?: mongoose.Types.ObjectId | unknown | null;
   sourceActivityId?: mongoose.Types.ObjectId | unknown | null;
+  scopeType?: string;
 }) => {
   const definition = getSharedFieldDefinition(fieldKey);
-  if (!definition || isEmptySharedValue(value)) return null;
+  // We no longer require a definition if it's dynamically shared, but we still check if value is empty
+  if (isEmptySharedValue(value)) return null;
 
-  const scopeType = definition.default_scope;
-  const scopeId = scopeType === SHARED_FIELD_SCOPES.farm ? farm._id : farm.farm_type_id;
+  const resolvedScopeType = scopeType || definition?.default_scope || 'farm';
+  const scopeId = resolvedScopeType === SHARED_FIELD_SCOPES.farm ? farm._id : farm.farm_type_id;
   const valueHash = createValueHash(fieldKey, value);
 
   return {
     updateOne: {
       filter: {
-        scope_type: scopeType,
+        scope_type: resolvedScopeType,
         scope_id: scopeId,
         field_key: fieldKey,
         value_hash: valueHash
@@ -202,8 +212,8 @@ const createSharedFieldUpsert = ({
         $set: {
           farm_id: farm._id,
           farm_type_id: farm.farm_type_id,
-          field_label: fieldLabel || definition.label,
-          field_type: fieldType || definition.value_type,
+          field_label: fieldLabel || definition?.label,
+          field_type: fieldType || definition?.value_type,
           value,
           value_text: getValueText(value),
           value_number: getValueNumber(value),
@@ -214,7 +224,7 @@ const createSharedFieldUpsert = ({
           last_used_at: new Date()
         },
         $setOnInsert: {
-          scope_type: scopeType,
+          scope_type: resolvedScopeType,
           scope_id: scopeId,
           field_key: fieldKey,
           value_hash: valueHash
@@ -266,7 +276,8 @@ export const syncSharedFieldValuesFromLog = async ({
     if (!field.key) continue;
 
     const fieldKey = normalizeSharedFieldKey(field.key);
-    if (!isSharedFieldKey(fieldKey)) continue;
+    // Allow if it's explicitly marked as is_shared in the activity config, OR if it's statically defined
+    if (!field.is_shared && !isSharedFieldKey(fieldKey)) continue;
 
     const value = data[fieldKey];
     if (isEmptySharedValue(value)) continue;
@@ -279,7 +290,8 @@ export const syncSharedFieldValuesFromLog = async ({
       value,
       sourceActivityId: activity._id,
       sourceLogId: log._id,
-      sourceBookId: book._id
+      sourceBookId: book._id,
+      scopeType: field.shared_scope
     });
 
     if (operation) operations.push(operation);
@@ -397,7 +409,7 @@ export const getSharedFieldHistoryForFields = async ({
     new Set(
       fields
       .map((field) => (field.key ? normalizeSharedFieldKey(field.key) : ''))
-        .filter((key) => key && isSharedFieldKey(key))
+        .filter((key) => key && (isSharedFieldKey(key) || fields.some((f) => normalizeSharedFieldKey(f.key || '') === key && f.is_shared)))
     )
   );
 
@@ -422,18 +434,25 @@ export const getSharedFieldHistoryForFields = async ({
   const result: Record<string, any> = {};
 
   for (const key of sharedKeys) {
+    const fieldConfig = fields.find(f => normalizeSharedFieldKey(f.key || '') === key);
     const definition = getSharedFieldDefinition(key);
+    
+    // Prioritize dynamic config over static definition
+    const mode = fieldConfig?.shared_mode || definition?.mode || 'suggest';
+    const scopeType = fieldConfig?.shared_scope || definition?.default_scope || SHARED_FIELD_SCOPES.farm;
+    const label = fieldConfig?.field_name || definition?.label || key;
+
     const items = records.filter((record) => record.field_key === key);
-    const primaryScopeItems = items.filter((record) => record.scope_type === definition?.default_scope);
-    const fallbackScopeItems = items.filter((record) => record.scope_type !== definition?.default_scope);
+    const primaryScopeItems = items.filter((record) => record.scope_type === scopeType);
+    const fallbackScopeItems = items.filter((record) => record.scope_type !== scopeType);
     const orderedItems = [...primaryScopeItems, ...fallbackScopeItems];
     const suggestions = orderedItems.slice(0, suggestionLimit).map(serializeSharedValue);
 
     result[key] = {
       key,
-      label: definition?.label,
-      mode: definition?.mode,
-      default_scope: definition?.default_scope,
+      label,
+      mode,
+      default_scope: scopeType,
       latest_value: suggestions[0] ?? null,
       suggestions
     };

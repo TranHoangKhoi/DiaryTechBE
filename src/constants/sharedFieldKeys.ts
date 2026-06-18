@@ -35,6 +35,7 @@ export const SHARED_FIELD_KEYS = {
   FEED_NAME: 'feed_name',
   FEED_CODE: 'feed_code',
   FEED_SIZE: 'feed_size',
+  FEED_AMOUNT: 'feed_amount',
   FEED_SUPPLEMENT: 'feed_supplement',
   FEED_MANUFACTURER: 'feed_manufacturer',
   SELLER: 'seller',
@@ -162,6 +163,13 @@ export const SHARED_FIELD_DEFINITIONS: SharedFieldDefinition[] = [
     value_type: 'text',
     default_scope: SHARED_FIELD_SCOPES.farm,
     mode: 'suggest'
+  },
+  {
+    key: SHARED_FIELD_KEYS.FEED_AMOUNT,
+    label: 'Lượng thức ăn (kg)',
+    value_type: 'number',
+    default_scope: SHARED_FIELD_SCOPES.farm,
+    mode: 'latest'
   },
   {
     key: SHARED_FIELD_KEYS.FEED_SUPPLEMENT,
@@ -369,7 +377,6 @@ export const NON_SHARED_FIELD_KEYS = {
   WASTE_DATE: 'waste_date',
   WASTEWATER_DATE: 'wastewater_date',
   QUANTITY: 'quantity',
-  FEED_AMOUNT: 'feed_amount',
   SEED_QUANTITY: 'seed_quantity',
   DEAD_COUNT: 'dead_count',
   DEAD_QUANTITY: 'dead_quantity',

@@ -18,7 +18,11 @@ const fieldSchema = z
     field_name: z.string().trim().min(1, 'Field name is required'),
     field_type: z.enum(FIELD_TYPES),
     is_required: z.boolean().optional().default(false),
-    options: z.array(z.string().trim().min(1, 'Option is required')).optional().default([])
+    autoFill: z.string().trim().optional(),
+    options: z.array(z.string().trim().min(1, 'Option is required')).optional().default([]),
+    is_shared: z.boolean().optional(),
+    shared_scope: z.string().optional(),
+    shared_mode: z.string().optional()
   })
   .superRefine((field, ctx) => {
     if (field.field_type === 'select' && field.options.length === 0) {
@@ -34,7 +38,8 @@ const baseActivitySchema = z.object({
   activity_name: z.string().trim().min(1, 'Activity name is required'),
   description: z.string().trim().optional().default(''),
   image: z.string().trim().optional().default(DEFAULT_ACTIVITY_IMAGE),
-  fields: z.array(fieldSchema).default([])
+  fields: z.array(fieldSchema).default([]),
+  supported_material_categories: z.array(z.string()).optional().default([])
 });
 
 const createActivitySchema = baseActivitySchema.extend({
@@ -86,10 +91,11 @@ const normalizeActivityPayload = (
             field_name: field.field_name,
             field_type: field.field_type,
             is_required: field.is_required ?? false,
+            autoFill: field.autoFill,
             options: field.field_type === 'select' ? field.options || [] : [],
-            is_shared: Boolean(getSharedFieldDefinition(normalizeSharedFieldKey(field.key))),
-            shared_scope: getSharedFieldDefinition(normalizeSharedFieldKey(field.key))?.default_scope,
-            shared_mode: getSharedFieldDefinition(normalizeSharedFieldKey(field.key))?.mode
+            is_shared: field.is_shared ?? Boolean(getSharedFieldDefinition(normalizeSharedFieldKey(field.key))),
+            shared_scope: field.shared_scope ?? getSharedFieldDefinition(normalizeSharedFieldKey(field.key))?.default_scope ?? 'farm',
+            shared_mode: field.shared_mode ?? getSharedFieldDefinition(normalizeSharedFieldKey(field.key))?.mode ?? 'suggest'
           }))
         }
       : {})
