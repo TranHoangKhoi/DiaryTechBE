@@ -36,8 +36,10 @@ const fieldSchema = z
 
 const baseActivitySchema = z.object({
   activity_name: z.string().trim().min(1, 'Activity name is required'),
+  activity_code: z.string().trim().optional(),
   description: z.string().trim().optional().default(''),
   image: z.string().trim().optional().default(DEFAULT_ACTIVITY_IMAGE),
+  workflow_type: z.enum(['general', 'issue', 'receive']).optional().default('general'),
   fields: z.array(fieldSchema).default([]),
   supported_material_categories: z.array(z.string()).optional().default([])
 });
@@ -84,6 +86,7 @@ const normalizeActivityPayload = (
   return {
     ...payload,
     image: payload.image?.trim() || DEFAULT_ACTIVITY_IMAGE,
+    workflow_type: payload.workflow_type || 'general',
     ...(payload.fields
       ? {
           fields: payload.fields.map((field) => ({

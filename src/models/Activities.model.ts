@@ -2,6 +2,7 @@ import mongoose, { Document } from 'mongoose';
 
 interface IActivities extends Document {
   farm_type_id: string;
+  activity_code?: string;
   activity_name: string;
   image: string;
   description: string;
@@ -19,11 +20,13 @@ interface IActivities extends Document {
     }
   ];
   supported_material_categories: string[];
+  workflow_type: string;
 }
 
 const ActivitySchema = new mongoose.Schema(
   {
     farm_type_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Farmtype', required: true },
+    activity_code: { type: String, default: null },
     activity_name: { type: String, required: true },
     image: {
       type: String,
@@ -31,6 +34,7 @@ const ActivitySchema = new mongoose.Schema(
         'https://res.cloudinary.com/delix6nht/image/upload/v1779251418/55fnc3b4ng-nghie1bb87p-thc3b4ng-minh1-1604989305810604890581-crop-1604989310824614604916-1624349165163487002833_hgk56s.jpg'
     },
     description: { type: String },
+    workflow_type: { type: String, enum: ['general', 'issue', 'receive'], default: 'general' },
     fields: [
       {
         key: { type: String, required: true },
