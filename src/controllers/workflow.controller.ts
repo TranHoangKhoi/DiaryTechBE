@@ -22,7 +22,8 @@ const issueAndLogSchema = z.object({
   date: z.string().optional(),
   notes: z.string().optional(),
   production_data: z.record(z.any()).optional().default({}),
-  inventory_data: z.record(z.any()).optional().default({})
+  inventory_data: z.record(z.any()).optional().default({}),
+  override_timestamps: z.boolean().optional().default(false),
 });
 
 export const issueAndLog = async (req: Request, res: Response) => {
@@ -80,7 +81,8 @@ export const issueAndLog = async (req: Request, res: Response) => {
         data: payload.production_data,
         notes: payload.notes,
         created_by: userId,
-        inventory_log_id: inventoryLogId.toString()
+        inventory_log_id: inventoryLogId.toString(),
+        ...(payload.override_timestamps ? { created_at: actionDate, updated_at: actionDate } : {})
       });
 
       const inventoryLog = new InventoryLogModel({
@@ -110,7 +112,8 @@ export const issueAndLog = async (req: Request, res: Response) => {
           model: 'ProductionLog',
           id: productionLogId
         },
-        created_by: userId
+        created_by: userId,
+        ...(payload.override_timestamps ? { createdAt: actionDate, updatedAt: actionDate } : {})
       });
 
       productionLogsToSave.push(productionLog);
@@ -224,7 +227,8 @@ const receiveAndLogSchema = z.object({
   date: z.string().optional(),
   notes: z.string().optional(),
   production_data: z.record(z.any()).optional().default({}),
-  inventory_data: z.record(z.any()).optional().default({})
+  inventory_data: z.record(z.any()).optional().default({}),
+  override_timestamps: z.boolean().optional().default(false),
 });
 
 export const receiveAndLog = async (req: Request, res: Response) => {
@@ -264,7 +268,8 @@ export const receiveAndLog = async (req: Request, res: Response) => {
       data: payload.production_data,
       notes: payload.notes,
       created_by: userId,
-      inventory_log_id: inventoryLogId.toString()
+      inventory_log_id: inventoryLogId.toString(),
+      ...(payload.override_timestamps ? { created_at: actionDate, updated_at: actionDate } : {})
     });
 
     const inventoryLog = new InventoryLogModel({
@@ -294,7 +299,8 @@ export const receiveAndLog = async (req: Request, res: Response) => {
         model: 'ProductionLog',
         id: productionLogId
       },
-      created_by: userId
+      created_by: userId,
+      ...(payload.override_timestamps ? { createdAt: actionDate, updatedAt: actionDate } : {})
     });
 
     // 3. Update InventoryStock

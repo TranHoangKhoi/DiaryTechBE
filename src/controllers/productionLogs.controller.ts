@@ -174,7 +174,7 @@ const assertLogRelations = async ({
 // Hàm tạo mới ProductionLog
 export const createProductionLog = async (req: Request, res: Response) => {
   try {
-    const { farm_id, activity_id, data = {}, chemical_usages, notes, date, book_id } = req.body;
+    const { farm_id, activity_id, data = {}, chemical_usages, notes, date, book_id, override_timestamps } = req.body;
 
     const userId = req.user?.id;
     const farmAccess = await assertFarmAccess(req.user, farm_id);
@@ -219,7 +219,8 @@ export const createProductionLog = async (req: Request, res: Response) => {
       notes,
       date: dateValue,
       book_id,
-      created_by: userId
+      created_by: userId,
+      ...(override_timestamps ? { created_at: dateValue, updated_at: dateValue } : {})
     });
 
     const savedLog = await newProductionLog.save();
