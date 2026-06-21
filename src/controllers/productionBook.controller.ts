@@ -1157,3 +1157,69 @@ export const getProductionBooksByOwner = async (req: Request, res: Response) => 
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+export const getHomeStatistics = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user._id || (req as any).user.id;
+    const role = (req as any).user.role;
+
+    if (role !== 'owner' && role !== 'sub_account') {
+      res.status(200).json({ success: true, data: [] });
+      return;
+    }
+
+    const farmQuery: any = {};
+    if (role === 'owner') {
+      farmQuery.owner_id = userId;
+    } else if (role === 'sub_account') {
+      farmQuery.user_id = userId;
+    }
+
+    const farms = await FarmModel.find(farmQuery).select('_id farm_name area unit location province ward').lean();
+    if (!farms.length) {
+      res.status(200).json({ success: true, data: [] });
+      return;
+    }
+
+    const farmIds = farms.map((f) => f._id);
+    const farmMap = new Map(farms.map((f) => [f._id.toString(), f]));
+
+    const books = await ProductionBookModel.find({
+      ...notDeletedFilter,
+      farm_id: { $in: farmIds },
+      status: 'ongoing',
+      zone_id: { $ne: null }
+    })
+      .populate('zone_id', 'name species area unit')
+      .lean();
+
+    const statistics = books.map((book) => {
+      const farmInfo = farmMap.get(book.farm_id.toString()) as any;
+      let locationStr = farmInfo?.location || '';
+      if (!locationStr && farmInfo?.province && farmInfo?.ward) {
+        locationStr = `${farmInfo.ward.name}, ${farmInfo.province.name}`;
+      }
+
+      return {
+        book_id: book._id,
+        farm_id: book.farm_id,
+        farm_name: farmInfo?.farm_name || '',
+        farm_area: farmInfo?.area || 0,
+        farm_unit: farmInfo?.unit || '',
+        farm_location: locationStr,
+        zone_id: (book.zone_id as any)?._id || book.zone_id,
+        zone_name: (book.zone_id as any)?.name || '',
+        species: (book.zone_id as any)?.species || '',
+        zone_area: (book.zone_id as any)?.area || 0,
+        zone_unit: (book.zone_id as any)?.unit || '',
+        start_date: book.start_date,
+        end_date: book.end_date
+      };
+    });
+
+    res.status(200).json({ success: true, data: statistics });
+  } catch (error) {
+    console.error('Error fetching home statistics:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

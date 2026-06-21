@@ -333,7 +333,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
 
     const baseQuery = ProductionLogsModel.find(filter)
       .populate('farm_id', 'farm_name avatar location')
-      .populate('activity_id', 'activity_name image')
+      .populate('activity_id', 'activity_name image fields')
       .populate('created_by', 'name avatar')
       .populate('book_id', 'name')
       .sort({ created_at: -1 });
@@ -830,7 +830,7 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
 
     const logs = await ProductionLogsModel.find(query)
       .populate('farm_id', 'farm_name avatar province ward location')
-      .populate('activity_id', 'activity_name image')
+      .populate('activity_id', 'activity_name image fields')
       .populate('created_by', 'name avatar')
       .populate('book_id', 'name')
       .sort({ created_at: -1 })
@@ -1044,7 +1044,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
       farm_id: { $in: farmIds }
     })
       .populate('farm_id', 'farm_name avatar province ward')
-      .populate('activity_id', 'activity_name image')
+      .populate('activity_id', 'activity_name image fields')
       .populate('created_by', 'name avatar')
       .sort({ created_at: -1 })
       .limit(limitNumber);
@@ -1085,5 +1085,32 @@ export const getRecentActivities = async (req: Request, res: Response) => {
       success: false,
       message: 'Lỗi server'
     });
+  }
+};
+
+export const deleteProductionLogsByActivity = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { farm_id, activity_id } = req.query;
+
+    if (!farm_id || !activity_id) {
+      res.status(400).json({ message: 'farm_id và activity_id là bắt buộc' });
+      return;
+    }
+
+    if (!isValidObjectId(farm_id) || !isValidObjectId(activity_id)) {
+      res.status(400).json({ message: 'farm_id hoặc activity_id không hợp lệ' });
+      return;
+    }
+
+    const result = await ProductionLogsModel.deleteMany({ farm_id, activity_id });
+
+    res.status(200).json({
+      success: true,
+      message: 'Xóa nhật ký thành công',
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error deleting logs:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
   }
 };

@@ -27,6 +27,8 @@ import farmZoneRoutes from './routes/farmZone.route';
 import farmDiagramRoutes from './routes/farmDiagram.route';
 import workflowRoutes from './routes/workflow.route';
 import systemConfigRoutes from './routes/systemConfig.route';
+import traceabilityRoutes from './routes/traceability.route';
+import marketPriceRoutes from './routes/marketPrice.routes';
 
 const app: Express = express();
 app.set('trust proxy', 1);
@@ -71,5 +73,7 @@ app.use('/api/farm-diagram', farmDiagramRoutes);
 app.use('/api/internal/workflows', workflowRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/system-config', systemConfigRoutes);
+app.use('/api/traceability', traceabilityRoutes);
+app.use('/api/market-price', marketPriceRoutes);
 
 export default app;

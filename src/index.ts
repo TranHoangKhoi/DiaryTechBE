@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import connectDB from './config/db';
 import app from './app';
+import { initCronJobs } from './utils/cronjob';
 
 // dotenv.config();
 dotenv.config({ path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local' });
@@ -11,6 +12,7 @@ connectDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
+      initCronJobs();
     });
   })
   .catch((error) => {

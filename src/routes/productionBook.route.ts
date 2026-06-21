@@ -11,12 +11,15 @@ import {
   getProductionBooksByOwner,
   softDeleteProductionBook,
   updateManageProductionBook,
-  updateProductionBook
+  updateProductionBook,
+  getHomeStatistics
 } from '~/controllers/productionBook.controller';
 import { MODULE_KEYS } from '~/constants/moduleKeys';
 import { auth, checkRole, requireModuleAccess } from '../middleware/auth.midleware';
 
 const router = express.Router();
+
+router.get('/home-statistics', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getHomeStatistics);
 
 router.get('/manage', auth, checkRole('superadmin'), getManageProductionBooks);
 router.post('/manage', auth, checkRole('superadmin'), createManageProductionBook);
