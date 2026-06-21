@@ -55,6 +55,7 @@ const materialSchema = z.object({
   unit: z.string().trim().min(1, 'Unit is required'),
   description: z.string().trim().optional().default(''),
   aliases: z.array(z.string().trim().min(1)).optional().default([]),
+  substance_type: z.enum(['main', 'supplementary']).optional().default('main'),
   status: z.enum(INVENTORY_MATERIAL_STATUSES).optional().default('active'),
   source_template_id: z
     .string()

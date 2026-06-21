@@ -19,6 +19,7 @@ export interface IInventoryMaterial extends Document {
   unit: string;
   description?: string;
   aliases: string[];
+  substance_type: 'main' | 'supplementary';
   normalized_name: string;
   search_text: string;
   status: InventoryMaterialStatus;
@@ -70,6 +71,11 @@ const InventoryMaterialSchema = new mongoose.Schema<IInventoryMaterial>(
     unit: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: '' },
     aliases: { type: [String], default: [] },
+    substance_type: {
+      type: String,
+      enum: ['main', 'supplementary'],
+      default: 'main'
+    },
     normalized_name: { type: String, required: true, trim: true, lowercase: true },
     search_text: { type: String, required: true, trim: true, lowercase: true },
     status: {
