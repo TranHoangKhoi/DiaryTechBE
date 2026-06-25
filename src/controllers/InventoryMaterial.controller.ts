@@ -315,7 +315,14 @@ export const getInventoryMaterials = async (req: Request, res: Response): Promis
       filter.farm_type_id = farm_type_id;
     }
 
-    if (category) filter.category = normalizeSlug(String(category));
+    if (category) {
+      const cats = String(category).split(',').map(normalizeSlug).filter(Boolean);
+      if (cats.length > 1) {
+        filter.category = { $in: cats };
+      } else if (cats.length === 1) {
+        filter.category = cats[0];
+      }
+    }
     if (status) filter.status = status;
 
     if (!isAdminUser(req.user)) {
