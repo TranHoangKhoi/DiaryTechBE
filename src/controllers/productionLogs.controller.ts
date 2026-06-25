@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import ActivitiesModel from '~/models/Activities.model';
@@ -14,29 +14,29 @@ import {
 
 // Schema cho chemical_usages
 const chemicalUsageSchema = z.object({
-  chemical_id: z.string().nonempty('Chemical ID là bắt buộc'), // Chuỗi không rỗng
-  quantity: z.number().positive('Số lượng phải lớn hơn 0'),
-  unit: z.string().nonempty('Đơn vị là bắt buộc'),
+  chemical_id: z.string().nonempty('Chemical ID lÃ  báº¯t buá»™c'), // Chuá»—i khÃ´ng rá»—ng
+  quantity: z.number().positive('Sá»‘ lÆ°á»£ng pháº£i lá»›n hÆ¡n 0'),
+  unit: z.string().nonempty('ÄÆ¡n vá»‹ lÃ  báº¯t buá»™c'),
   application_date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'Ngày ứng dụng phải là định dạng ngày hợp lệ (ISO)'
+    message: 'NgÃ y á»©ng dá»¥ng pháº£i lÃ  Ä‘á»‹nh dáº¡ng ngÃ y há»£p lá»‡ (ISO)'
   }),
   notes: z.string().optional()
 });
 
 // Schema cho ProductionLog
 const productionLogSchema = z.object({
-  farm_id: z.string().nonempty('Farm ID là bắt buộc'),
-  activity_id: z.string().nonempty('Activity ID là bắt buộc'),
+  farm_id: z.string().nonempty('Farm ID lÃ  báº¯t buá»™c'),
+  activity_id: z.string().nonempty('Activity ID lÃ  báº¯t buá»™c'),
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'Ngày phải là định dạng ngày hợp lệ (ISO)'
+    message: 'NgÃ y pháº£i lÃ  Ä‘á»‹nh dáº¡ng ngÃ y há»£p lá»‡ (ISO)'
   }),
-  data: z.record(z.string(), z.any()).default({}), // Object động, mặc định là {}
-  chemical_usages: z.array(chemicalUsageSchema).optional().default([]), // Mảng, mặc định rỗng
+  data: z.record(z.string(), z.any()).default({}), // Object Ä‘á»™ng, máº·c Ä‘á»‹nh lÃ  {}
+  chemical_usages: z.array(chemicalUsageSchema).optional().default([]), // Máº£ng, máº·c Ä‘á»‹nh rá»—ng
   notes: z.string().optional(),
-  created_by: z.string().nonempty('Created_by là bắt buộc') // Chuỗi ObjectId
+  created_by: z.string().nonempty('Created_by lÃ  báº¯t buá»™c') // Chuá»—i ObjectId
 });
 
-// TypeScript type từ Zod schema
+// TypeScript type tá»« Zod schema
 export type ProductionLogInput = z.infer<typeof productionLogSchema>;
 
 const MAX_MANAGE_LIMIT = 100;
@@ -171,7 +171,7 @@ const assertLogRelations = async ({
   return { ok: true as const, farm, activity, book };
 };
 
-// Hàm tạo mới ProductionLog
+// HÃ m táº¡o má»›i ProductionLog
 export const createProductionLog = async (req: Request, res: Response) => {
   try {
     const { farm_id, activity_id, data = {}, chemical_usages, notes, date, book_id, override_timestamps } = req.body;
@@ -233,20 +233,20 @@ export const createProductionLog = async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      message: 'Tạo production log thành công',
+      message: 'Táº¡o production log thÃ nh cÃ´ng',
       data: savedLog
     });
   } catch (error) {
     console.error('Error creating production log:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server',
+      message: 'Lá»—i server',
       error
     });
   }
 };
 
-// Lấy danh sách hoạt động theo farmId
+// Láº¥y danh sÃ¡ch hoáº¡t Ä‘á»™ng theo farmId
 export const getProductionLogsByFarm = async (req: Request, res: Response) => {
   try {
     const { farm_id } = req.params;
@@ -255,7 +255,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
     if (!farm_id) {
       res.status(400).json({
         success: false,
-        message: 'Thiếu farm_id'
+        message: 'Thiáº¿u farm_id'
       });
       return;
     }
@@ -275,7 +275,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'Mã cuốn nhât ký không hợp lệ'
+          message: 'MÃ£ cuá»‘n nhÃ¢t kÃ½ khÃ´ng há»£p lá»‡'
         });
         return;
       }
@@ -287,7 +287,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'Mã hoạt động không hợp lệ'
+          message: 'MÃ£ hoáº¡t Ä‘á»™ng khÃ´ng há»£p lá»‡'
         });
         return;
       }
@@ -304,7 +304,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
         if (isNaN(startDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'Ngày bắt đầu không hợp lệ'
+            message: 'NgÃ y báº¯t Ä‘áº§u khÃ´ng há»£p lá»‡'
           });
           return;
         }
@@ -319,7 +319,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
         if (isNaN(endDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'Ngày kết thúc không hợp lệ'
+            message: 'NgÃ y káº¿t thÃºc khÃ´ng há»£p lá»‡'
           });
           return;
         }
@@ -339,7 +339,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
       .sort({ created_at: -1 });
 
     // =====================================
-    // 🔹 Nếu có page + limit → Web dùng
+    // ðŸ”¹ Náº¿u cÃ³ page + limit â†’ Web dÃ¹ng
     // =====================================
 
     if (page && limit) {
@@ -367,7 +367,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
     }
 
     // =====================================
-    // 🔹 Không truyền gì → App cũ dùng
+    // ðŸ”¹ KhÃ´ng truyá»n gÃ¬ â†’ App cÅ© dÃ¹ng
     // =====================================
     const logs = await baseQuery;
 
@@ -380,7 +380,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
     console.error('Error fetching production logs:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server'
+      message: 'Lá»—i server'
     });
     return;
   }
@@ -391,13 +391,13 @@ export const getProductionLogsByID = async (req: Request, res: Response): Promis
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(400).json({ success: false, message: 'ID không hợp lệ' });
+      res.status(400).json({ success: false, message: 'ID khÃ´ng há»£p lá»‡' });
       return;
     }
 
     const baseLog = await ProductionLogsModel.findById(id).select('farm_id');
     if (!baseLog) {
-      res.status(404).json({ success: false, message: 'KhÃ´ng tÃ¬m tháº¥y nháº­t kÃ½ sáº£n xuáº¥t' });
+      res.status(404).json({ success: false, message: 'KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y nhÃ¡ÂºÂ­t kÃƒÂ½ sÃ¡ÂºÂ£n xuÃ¡ÂºÂ¥t' });
       return;
     }
 
@@ -441,41 +441,41 @@ export const getProductionLogsByID = async (req: Request, res: Response): Promis
       });
 
     if (!productionLog) {
-      res.status(404).json({ success: false, message: 'Không tìm thấy nhật ký sản xuất' });
+      res.status(404).json({ success: false, message: 'KhÃ´ng tÃ¬m tháº¥y nháº­t kÃ½ sáº£n xuáº¥t' });
       return;
     }
 
     res.status(200).json({
       success: true,
-      message: 'Lấy chi tiết nhật ký sản xuất thành công',
+      message: 'Láº¥y chi tiáº¿t nháº­t kÃ½ sáº£n xuáº¥t thÃ nh cÃ´ng',
       data: productionLog
     });
 
     return;
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Lỗi server', error });
+    res.status(500).json({ success: false, message: 'Lá»—i server', error });
     return;
   }
 };
 
 export const getProductionLogsByActivityAndFarm = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Lấy activity_id và farm_id từ query params hoặc body
+    // Láº¥y activity_id vÃ  farm_id tá»« query params hoáº·c body
     const { activity_id, farm_id } = req.query;
 
     console.log('activity_id: ', activity_id);
     console.log('farm_id: ', farm_id);
 
-    // Kiểm tra xem các tham số có được cung cấp không
+    // Kiá»ƒm tra xem cÃ¡c tham sá»‘ cÃ³ Ä‘Æ°á»£c cung cáº¥p khÃ´ng
     if (!activity_id || !farm_id) {
       res.status(400).json({
-        message: 'Vui lòng cung cấp cả activity_id và farm_id'
+        message: 'Vui lÃ²ng cung cáº¥p cáº£ activity_id vÃ  farm_id'
       });
       return;
     }
 
-    // Chuyển đổi thành ObjectId (nếu cần)
+    // Chuyá»ƒn Ä‘á»•i thÃ nh ObjectId (náº¿u cáº§n)
     const farmAccess = await assertFarmAccess(req.user, farm_id as string);
     if (!farmAccess.ok) {
       res.status(farmAccess.status).json({
@@ -487,40 +487,40 @@ export const getProductionLogsByActivityAndFarm = async (req: Request, res: Resp
     const activityId = new mongoose.Types.ObjectId(activity_id as string);
     const farmId = new mongoose.Types.ObjectId(farm_id as string);
 
-    // Truy vấn ProductionLogs
+    // Truy váº¥n ProductionLogs
     const productionLogs = await ProductionLogs.find({
       activity_id: activityId,
       farm_id: farmId
     });
 
-    //   .populate('activity_id', 'activity_name description') // Populate thông tin Activity
-    //   .populate('farm_id', 'farm_name location') // Populate thông tin Farm từ User.farms
-    //   .populate('chemical_usages.chemical_id', 'chemical_name') // Populate thông tin Chemical
-    //   .populate('created_by', 'username email') // Populate thông tin User
-    //   .sort({ date: -1 }); // Sắp xếp theo ngày giảm dần (mới nhất trước)
+    //   .populate('activity_id', 'activity_name description') // Populate thÃ´ng tin Activity
+    //   .populate('farm_id', 'farm_name location') // Populate thÃ´ng tin Farm tá»« User.farms
+    //   .populate('chemical_usages.chemical_id', 'chemical_name') // Populate thÃ´ng tin Chemical
+    //   .populate('created_by', 'username email') // Populate thÃ´ng tin User
+    //   .sort({ date: -1 }); // Sáº¯p xáº¿p theo ngÃ y giáº£m dáº§n (má»›i nháº¥t trÆ°á»›c)
 
-    // Kiểm tra kết quả
+    // Kiá»ƒm tra káº¿t quáº£
     if (!productionLogs || productionLogs.length === 0) {
       res.status(404).json({
-        message: 'Không tìm thấy ProductionLogs nào với activity_id và farm_id này'
+        message: 'KhÃ´ng tÃ¬m tháº¥y ProductionLogs nÃ o vá»›i activity_id vÃ  farm_id nÃ y'
       });
       return;
     }
 
-    // Trả về danh sách ProductionLogs
+    // Tráº£ vá» danh sÃ¡ch ProductionLogs
     res.status(200).json(productionLogs);
     return;
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: 'Lỗi server',
+      message: 'Lá»—i server',
       error: error
     });
     return;
   }
 };
 
-// Lấy ra hoạt động gần nhất
+// Láº¥y ra hoáº¡t Ä‘á»™ng gáº§n nháº¥t
 export const getManageProductionLogs = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
@@ -790,7 +790,7 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'farm_id không hợp lệ'
+          message: 'farm_id khÃ´ng há»£p lá»‡'
         });
         return;
       }
@@ -805,7 +805,7 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
 
       query.farm_id = new mongoose.Types.ObjectId(farm_id as string);
     } else if (req.user?.role === 'owner' || req.user?.role === 'sub_account') {
-      // Nếu là owner và không truyền farm_id, lấy log của tất cả farm thuộc owner này
+      // Náº¿u lÃ  owner vÃ  khÃ´ng truyá»n farm_id, láº¥y log cá»§a táº¥t cáº£ farm thuá»™c owner nÃ y
       const farms = await mongoose.model('Farm').find(getFarmAccessCondition(req.user) ?? {}).select('_id');
       const farmIds = farms.map((f) => f._id);
       if (farmIds.length === 0) {
@@ -816,12 +816,12 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
     } else {
       res.status(400).json({
         success: false,
-        message: 'Thiếu farm_id hoặc bạn không có quyền truy cập'
+        message: 'Thiáº¿u farm_id hoáº·c báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p'
       });
       return;
     }
 
-    // nếu có log cần loại trừ
+    // náº¿u cÃ³ log cáº§n loáº¡i trá»«
     if (exclude_log_id && mongoose.Types.ObjectId.isValid(exclude_log_id as string)) {
       query._id = {
         $ne: new mongoose.Types.ObjectId(exclude_log_id as string)
@@ -844,12 +844,12 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
     console.error('Error fetching recent logs:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server'
+      message: 'Lá»—i server'
     });
   }
 };
 
-// Lấy nhật ký bằng tài khoản owner
+// Láº¥y nháº­t kÃ½ báº±ng tÃ i khoáº£n owner
 export const getOwnerProductionLogs = async (req: Request, res: Response) => {
   try {
     const ownerId = req.user?.id;
@@ -862,7 +862,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
     const skip = (pageNumber - 1) * limitNumber;
 
     // ==============================
-    // Tìm farm thuộc tenant
+    // TÃ¬m farm thuá»™c tenant
     // ==============================
 
     const farmFilter: any = {
@@ -873,7 +873,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(farmer_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'Hộ nông dân không hợp lệ'
+          message: 'Há»™ nÃ´ng dÃ¢n khÃ´ng há»£p lá»‡'
         });
         return;
       }
@@ -885,7 +885,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'Mã trang trại không hợp lệ'
+          message: 'MÃ£ trang tráº¡i khÃ´ng há»£p lá»‡'
         });
         return;
       }
@@ -905,7 +905,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'Mã cuốn nhật ký không hợp lệ'
+          message: 'MÃ£ cuá»‘n nháº­t kÃ½ khÃ´ng há»£p lá»‡'
         });
         return;
       }
@@ -917,7 +917,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'Mã hoạt động không hợp lệ'
+          message: 'MÃ£ hoáº¡t Ä‘á»™ng khÃ´ng há»£p lá»‡'
         });
         return;
       }
@@ -934,7 +934,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
         if (isNaN(startDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'Ngày bắt đầu không hợp lệ'
+            message: 'NgÃ y báº¯t Ä‘áº§u khÃ´ng há»£p lá»‡'
           });
           return;
         }
@@ -949,7 +949,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
         if (isNaN(endDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'Ngày kết thúc không hợp lệ'
+            message: 'NgÃ y káº¿t thÃºc khÃ´ng há»£p lá»‡'
           });
           return;
         }
@@ -974,7 +974,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
     const [logs, total] = await Promise.all([
       ProductionLogsModel.find(logFilter)
         .populate('farm_id', 'farm_name avatar province ward location')
-        .populate('activity_id', 'activity_name image description')
+        .populate('activity_id', 'activity_name image description fields')
         .populate('created_by', 'name avatar')
         .populate('book_id', 'name')
         .sort({ created_at: -1 })
@@ -998,12 +998,12 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
     console.error('Error fetching tenant logs:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server'
+      message: 'Lá»—i server'
     });
   }
 };
 
-// Lấy hoạt động gần nhất của owner
+// Láº¥y hoáº¡t Ä‘á»™ng gáº§n nháº¥t cá»§a owner
 export const getRecentActivities = async (req: Request, res: Response) => {
   try {
     const ownerId = req.user?.id;
@@ -1013,7 +1013,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
     const limitNumber = Math.max(parseInt(limit as string) || 5, 1);
 
     // ==============================
-    // Lấy danh sách farm thuộc owner
+    // Láº¥y danh sÃ¡ch farm thuá»™c owner
     // ==============================
 
     const farmFilter: any = {
@@ -1037,7 +1037,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
     }
 
     // ==============================
-    // Lấy production logs mới nhất
+    // Láº¥y production logs má»›i nháº¥t
     // ==============================
 
     const logs = await ProductionLogsModel.find({
@@ -1050,14 +1050,14 @@ export const getRecentActivities = async (req: Request, res: Response) => {
       .limit(limitNumber);
 
     // ==============================
-    // Transform thành activity
+    // Transform thÃ nh activity
     // ==============================
 
     const activities = logs.map((log: any) => ({
       id: log._id,
       type: 'create_log',
 
-      message: `${log.farm_id?.farm_name} đã thêm nhật ký "${log.activity_id?.activity_name}"`,
+      message: `${log.farm_id?.farm_name} Ä‘Ã£ thÃªm nháº­t kÃ½ "${log.activity_id?.activity_name}"`,
 
       user: {
         id: log.created_by?._id,
@@ -1083,7 +1083,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
 
     res.status(500).json({
       success: false,
-      message: 'Lỗi server'
+      message: 'Lá»—i server'
     });
   }
 };
@@ -1093,12 +1093,12 @@ export const deleteProductionLogsByActivity = async (req: Request, res: Response
     const { farm_id, activity_id } = req.query;
 
     if (!farm_id || !activity_id) {
-      res.status(400).json({ message: 'farm_id và activity_id là bắt buộc' });
+      res.status(400).json({ message: 'farm_id vÃ  activity_id lÃ  báº¯t buá»™c' });
       return;
     }
 
     if (!isValidObjectId(farm_id) || !isValidObjectId(activity_id)) {
-      res.status(400).json({ message: 'farm_id hoặc activity_id không hợp lệ' });
+      res.status(400).json({ message: 'farm_id hoáº·c activity_id khÃ´ng há»£p lá»‡' });
       return;
     }
 
@@ -1106,11 +1106,11 @@ export const deleteProductionLogsByActivity = async (req: Request, res: Response
 
     res.status(200).json({
       success: true,
-      message: 'Xóa nhật ký thành công',
+      message: 'XÃ³a nháº­t kÃ½ thÃ nh cÃ´ng',
       deletedCount: result.deletedCount
     });
   } catch (error) {
     console.error('Error deleting logs:', error);
-    res.status(500).json({ success: false, message: 'Lỗi server' });
+    res.status(500).json({ success: false, message: 'Lá»—i server' });
   }
 };

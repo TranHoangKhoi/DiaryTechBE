@@ -29,6 +29,8 @@ import workflowRoutes from './routes/workflow.route';
 import systemConfigRoutes from './routes/systemConfig.route';
 import traceabilityRoutes from './routes/traceability.route';
 import marketPriceRoutes from './routes/marketPrice.routes';
+import reportTemplateRoutes from './routes/reportTemplate.route';
+import exportRoutes from './routes/export.route';
 
 const app: Express = express();
 app.set('trust proxy', 1);
@@ -75,5 +77,7 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/system-config', systemConfigRoutes);
 app.use('/api/traceability', traceabilityRoutes);
 app.use('/api/market-price', marketPriceRoutes);
+app.use('/api/report-template', reportTemplateRoutes);
+app.use('/api/export', exportRoutes);
 
 export default app;

@@ -8,6 +8,7 @@ import InventoryLogModel from '~/models/InventoryLog.model';
 import InventoryMaterialModel from '~/models/InventoryMaterial.model';
 import InventoryStockModel from '~/models/InventoryStock.model';
 import { assertFarmAccess, getFarmAccessCondition } from '~/services/farmAccess.service';
+import { trainProduct, updateProductEmbedding } from '~/services/ocr.service';
 
 const parsePositiveInt = (value: unknown, fallback: number, max = 100) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -262,6 +263,10 @@ export const createInventoryMaterial = async (req: Request, res: Response): Prom
       }
     }
 
+    if (material && payload.images && Array.isArray(payload.images) && payload.images.length > 0) {
+      trainProduct(material, payload.images as string[]).catch((e) => console.error(e));
+    }
+
     res.status(201).json({ message: 'Create inventory material successfully', data: material });
   } catch (error) {
     handleControllerError(res, error, 'Error createInventoryMaterial:');
@@ -504,6 +509,23 @@ export const updateInventoryMaterial = async (req: Request, res: Response): Prom
     if (!material) {
       res.status(404).json({ message: 'Inventory material not found' });
       return;
+    }
+
+    if (material && payload.images && Array.isArray(payload.images)) {
+      const oldImages = currentMaterial.images || [];
+      const newImages = (payload.images as string[]).filter(url => !oldImages.includes(url));
+      
+      const embeddedCount = currentMaterial.embedded_images_count || 0;
+      if (newImages.length > 0 && embeddedCount < 5) {
+        const allowedNewCount = 5 - embeddedCount;
+        const imagesToTrain = newImages.slice(0, allowedNewCount);
+        
+        if (!currentMaterial.is_embedded) {
+          trainProduct(material, imagesToTrain).catch((e) => console.error(e));
+        } else {
+          updateProductEmbedding(material, imagesToTrain).catch((e) => console.error(e));
+        }
+      }
     }
 
     res.status(200).json({ message: 'Update inventory material successfully', data: material });

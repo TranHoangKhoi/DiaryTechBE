@@ -66,7 +66,7 @@ export const FILE_SERVER_SYSTEM_ID = process.env.FILE_SERVER_SYSTEM_ID || DEFAUL
 
 const client: AxiosInstance = axios.create({
   baseURL: FILE_SERVER_BASE_URL,
-  timeout: Number(process.env.FILE_SERVER_TIMEOUT_MS || 15000),
+  timeout: Number(process.env.FILE_SERVER_TIMEOUT_MS || 60000),
   maxBodyLength: Infinity,
   maxContentLength: Infinity
 });

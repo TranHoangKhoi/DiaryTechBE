@@ -1,17 +1,33 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { IUserProvince } from './User.model';
 
 export interface IMarketPrice extends Document {
   name: string;
-  price: string;
+  price: number;
   unit: string;
-  region: string;
+  userId: mongoose.Types.ObjectId;
+  province?: IUserProvince | null;
   date: Date;
   imageUrl?: string;
-  source: string; // e.g. "Tepbac"
-  type: string; // e.g. "tom", "ca"
+  type: string; // e.g. "Shrimp", "Fish"
   createdAt: Date;
   updatedAt: Date;
 }
+
+const ProvinceSchema = new mongoose.Schema<IUserProvince>(
+  {
+    id: { type: String },
+    province_code: { type: String, required: true },
+    name: { type: String, required: true },
+    short_name: { type: String },
+    code: { type: String },
+    place_type: { type: String },
+    country: { type: String, default: 'VN' },
+    created_at: { type: String, default: null },
+    updated_at: { type: String, default: null }
+  },
+  { _id: false }
+);
 
 const MarketPriceSchema: Schema = new Schema(
   {
@@ -21,16 +37,22 @@ const MarketPriceSchema: Schema = new Schema(
       trim: true,
     },
     price: {
-      type: String, // String because it might be "120,000 - 130,000"
+      type: Number,
       required: true,
     },
     unit: {
       type: String,
       default: 'kg',
     },
-    region: {
-      type: String,
-      default: 'Toàn quốc',
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+    province: {
+      type: ProvinceSchema,
+      default: null,
     },
     date: {
       type: Date,
@@ -40,14 +62,10 @@ const MarketPriceSchema: Schema = new Schema(
     imageUrl: {
       type: String,
     },
-    source: {
-      type: String,
-      default: 'Tepbac',
-    },
     type: {
       type: String,
       required: true,
-      default: 'tom',
+      default: 'Shrimp',
     },
   },
   { timestamps: true }

@@ -13,7 +13,14 @@ const fileUpload = multer({
     fileSize: 20 * 1024 * 1024
   },
   fileFilter: (_req, file, cb) => {
-    const isAllowed = file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf';
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    const isAllowed = file.mimetype.startsWith('image/') || allowedMimeTypes.includes(file.mimetype);
     cb(null, isAllowed);
   }
 });

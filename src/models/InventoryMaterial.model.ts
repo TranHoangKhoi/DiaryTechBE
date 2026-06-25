@@ -26,6 +26,8 @@ export interface IInventoryMaterial extends Document {
   source_template_id?: mongoose.Types.ObjectId | null;
   created_by?: mongoose.Types.ObjectId | null;
   last_used_at: Date;
+  is_embedded: boolean;
+  embedded_images_count: number;
 }
 
 const normalizeText = (value: unknown) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '');
@@ -96,6 +98,14 @@ const InventoryMaterialSchema = new mongoose.Schema<IInventoryMaterial>(
     last_used_at: {
       type: Date,
       default: Date.now
+    },
+    is_embedded: {
+      type: Boolean,
+      default: false
+    },
+    embedded_images_count: {
+      type: Number,
+      default: 0
     }
   },
   { timestamps: true }
