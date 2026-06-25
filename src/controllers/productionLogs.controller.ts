@@ -14,29 +14,29 @@ import {
 
 // Schema cho chemical_usages
 const chemicalUsageSchema = z.object({
-  chemical_id: z.string().nonempty('Chemical ID lÃ  báº¯t buá»™c'), // Chuá»—i khÃ´ng rá»—ng
-  quantity: z.number().positive('Sá»‘ lÆ°á»£ng pháº£i lá»›n hÆ¡n 0'),
-  unit: z.string().nonempty('ÄÆ¡n vá»‹ lÃ  báº¯t buá»™c'),
+  chemical_id: z.string().nonempty('Chemical ID là bắt buộc'), // Chuỗi không rỗng
+  quantity: z.number().positive('Số lượng phải lớn hơn 0'),
+  unit: z.string().nonempty('Đơn vị bắt buộc'),
   application_date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'NgÃ y á»©ng dá»¥ng pháº£i lÃ  Ä‘á»‹nh dáº¡ng ngÃ y há»£p lá»‡ (ISO)'
+    message: 'Ngày ứng dụng phải là định dạng ngày hợp lệ (ISO)'
   }),
   notes: z.string().optional()
 });
 
 // Schema cho ProductionLog
 const productionLogSchema = z.object({
-  farm_id: z.string().nonempty('Farm ID lÃ  báº¯t buá»™c'),
-  activity_id: z.string().nonempty('Activity ID lÃ  báº¯t buá»™c'),
+  farm_id: z.string().nonempty('Farm ID là bắt buộc'),
+  activity_id: z.string().nonempty('Activity ID là bắt buộc'),
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'NgÃ y pháº£i lÃ  Ä‘á»‹nh dáº¡ng ngÃ y há»£p lá»‡ (ISO)'
+    message: 'Ngày phải là định dạng ngày hợp lệ (ISO)'
   }),
-  data: z.record(z.string(), z.any()).default({}), // Object Ä‘á»™ng, máº·c Ä‘á»‹nh lÃ  {}
-  chemical_usages: z.array(chemicalUsageSchema).optional().default([]), // Máº£ng, máº·c Ä‘á»‹nh rá»—ng
+  data: z.record(z.string(), z.any()).default({}), // Object động, mặc định {}
+  chemical_usages: z.array(chemicalUsageSchema).optional().default([]), // Mảng, mặc định rỗng
   notes: z.string().optional(),
-  created_by: z.string().nonempty('Created_by lÃ  báº¯t buá»™c') // Chuá»—i ObjectId
+  created_by: z.string().nonempty('Created_by là bắt buộc') // Chuỗi ObjectId
 });
 
-// TypeScript type tá»« Zod schema
+// TypeScript type từ Zod schema
 export type ProductionLogInput = z.infer<typeof productionLogSchema>;
 
 const MAX_MANAGE_LIMIT = 100;
@@ -171,7 +171,7 @@ const assertLogRelations = async ({
   return { ok: true as const, farm, activity, book };
 };
 
-// HÃ m táº¡o má»›i ProductionLog
+// Hàm tạo mới ProductionLog
 export const createProductionLog = async (req: Request, res: Response) => {
   try {
     const { farm_id, activity_id, data = {}, chemical_usages, notes, date, book_id, override_timestamps } = req.body;
@@ -233,20 +233,20 @@ export const createProductionLog = async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      message: 'Táº¡o production log thÃ nh cÃ´ng',
+      message: 'Tạo nhật ký sản xuất thành công',
       data: savedLog
     });
   } catch (error) {
     console.error('Error creating production log:', error);
     res.status(500).json({
       success: false,
-      message: 'Lá»—i server',
+      message: 'Lỗi server',
       error
     });
   }
 };
 
-// Láº¥y danh sÃ¡ch hoáº¡t Ä‘á»™ng theo farmId
+// Lấy danh sách hoạt động theo farmId
 export const getProductionLogsByFarm = async (req: Request, res: Response) => {
   try {
     const { farm_id } = req.params;
@@ -255,7 +255,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
     if (!farm_id) {
       res.status(400).json({
         success: false,
-        message: 'Thiáº¿u farm_id'
+        message: 'Thiếu farm_id'
       });
       return;
     }
@@ -275,7 +275,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'MÃ£ cuá»‘n nhÃ¢t kÃ½ khÃ´ng há»£p lá»‡'
+          message: 'Mã cuốn nhật ký không hợp lệ'
         });
         return;
       }
@@ -287,7 +287,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'MÃ£ hoáº¡t Ä‘á»™ng khÃ´ng há»£p lá»‡'
+          message: 'Mã hoạt động không hợp lệ'
         });
         return;
       }
@@ -304,7 +304,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
         if (isNaN(startDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'NgÃ y báº¯t Ä‘áº§u khÃ´ng há»£p lá»‡'
+            message: 'NgÃ y bắt đầu không hợp lệ'
           });
           return;
         }
@@ -319,7 +319,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
         if (isNaN(endDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'NgÃ y káº¿t thÃºc khÃ´ng há»£p lá»‡'
+            message: 'NgÃ y kết thúc không hợp lệ'
           });
           return;
         }
@@ -339,7 +339,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
       .sort({ created_at: -1 });
 
     // =====================================
-    // ðŸ”¹ Náº¿u cÃ³ page + limit â†’ Web dÃ¹ng
+    // ðŸ”¹ Nếu có page + limit -> Web dùng
     // =====================================
 
     if (page && limit) {
@@ -367,7 +367,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
     }
 
     // =====================================
-    // ðŸ”¹ KhÃ´ng truyá»n gÃ¬ â†’ App cÅ© dÃ¹ng
+    // ðŸ”¹ Không truyá»n gì -> App cũ dùng
     // =====================================
     const logs = await baseQuery;
 
@@ -380,7 +380,7 @@ export const getProductionLogsByFarm = async (req: Request, res: Response) => {
     console.error('Error fetching production logs:', error);
     res.status(500).json({
       success: false,
-      message: 'Lá»—i server'
+      message: 'Lỗi server'
     });
     return;
   }
@@ -391,13 +391,13 @@ export const getProductionLogsByID = async (req: Request, res: Response): Promis
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(400).json({ success: false, message: 'ID khÃ´ng há»£p lá»‡' });
+      res.status(400).json({ success: false, message: 'ID không hợp lệ' });
       return;
     }
 
     const baseLog = await ProductionLogsModel.findById(id).select('farm_id');
     if (!baseLog) {
-      res.status(404).json({ success: false, message: 'KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y nhÃ¡ÂºÂ­t kÃƒÂ½ sÃ¡ÂºÂ£n xuÃ¡ÂºÂ¥t' });
+      res.status(404).json({ success: false, message: 'Không tìm thấy nhật ký sản xuất' });
       return;
     }
 
@@ -441,41 +441,41 @@ export const getProductionLogsByID = async (req: Request, res: Response): Promis
       });
 
     if (!productionLog) {
-      res.status(404).json({ success: false, message: 'KhÃ´ng tÃ¬m tháº¥y nháº­t kÃ½ sáº£n xuáº¥t' });
+      res.status(404).json({ success: false, message: 'Không tìm thấy nhật ký sản xuất' });
       return;
     }
 
     res.status(200).json({
       success: true,
-      message: 'Láº¥y chi tiáº¿t nháº­t kÃ½ sáº£n xuáº¥t thÃ nh cÃ´ng',
+      message: 'Lấy chi tiết nhật ký sản xuất thành công',
       data: productionLog
     });
 
     return;
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Lá»—i server', error });
+    res.status(500).json({ success: false, message: 'Lỗi server', error });
     return;
   }
 };
 
 export const getProductionLogsByActivityAndFarm = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Láº¥y activity_id vÃ  farm_id tá»« query params hoáº·c body
+    // Lấy activity_id farm_id từ query params hoặc body
     const { activity_id, farm_id } = req.query;
 
     console.log('activity_id: ', activity_id);
     console.log('farm_id: ', farm_id);
 
-    // Kiá»ƒm tra xem cÃ¡c tham sá»‘ cÃ³ Ä‘Æ°á»£c cung cáº¥p khÃ´ng
+    // Kiểm tra xem các tham số có được cung cấp không
     if (!activity_id || !farm_id) {
       res.status(400).json({
-        message: 'Vui lÃ²ng cung cáº¥p cáº£ activity_id vÃ  farm_id'
+        message: 'Vui lòng cung cấp cả activity_id vÃ  farm_id'
       });
       return;
     }
 
-    // Chuyá»ƒn Ä‘á»•i thÃ nh ObjectId (náº¿u cáº§n)
+    // Chuyển đổi thành ObjectId (nếu cần)
     const farmAccess = await assertFarmAccess(req.user, farm_id as string);
     if (!farmAccess.ok) {
       res.status(farmAccess.status).json({
@@ -487,40 +487,40 @@ export const getProductionLogsByActivityAndFarm = async (req: Request, res: Resp
     const activityId = new mongoose.Types.ObjectId(activity_id as string);
     const farmId = new mongoose.Types.ObjectId(farm_id as string);
 
-    // Truy váº¥n ProductionLogs
+    // Truy vấn ProductionLogs
     const productionLogs = await ProductionLogs.find({
       activity_id: activityId,
       farm_id: farmId
     });
 
-    //   .populate('activity_id', 'activity_name description') // Populate thÃ´ng tin Activity
-    //   .populate('farm_id', 'farm_name location') // Populate thÃ´ng tin Farm tá»« User.farms
-    //   .populate('chemical_usages.chemical_id', 'chemical_name') // Populate thÃ´ng tin Chemical
-    //   .populate('created_by', 'username email') // Populate thÃ´ng tin User
-    //   .sort({ date: -1 }); // Sáº¯p xáº¿p theo ngÃ y giáº£m dáº§n (má»›i nháº¥t trÆ°á»›c)
+    //   .populate('activity_id', 'activity_name description') // Populate thông tin Activity
+    //   .populate('farm_id', 'farm_name location') // Populate thông tin Farm từ User.farms
+    //   .populate('chemical_usages.chemical_id', 'chemical_name') // Populate thông tin Chemical
+    //   .populate('created_by', 'username email') // Populate thông tin User
+    //   .sort({ date: -1 }); // Sắp xếp theo ngày giảm dần (mới nhất trước)
 
-    // Kiá»ƒm tra káº¿t quáº£
+    // Kiểm tra kết quả
     if (!productionLogs || productionLogs.length === 0) {
       res.status(404).json({
-        message: 'KhÃ´ng tÃ¬m tháº¥y ProductionLogs nÃ o vá»›i activity_id vÃ  farm_id nÃ y'
+        message: 'Không tìm thấy ProductionLogs nÃ o với activity_id vÃ  farm_id nÃ y'
       });
       return;
     }
 
-    // Tráº£ vá» danh sÃ¡ch ProductionLogs
+    // Trả vá» danh sách ProductionLogs
     res.status(200).json(productionLogs);
     return;
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: 'Lá»—i server',
+      message: 'Lỗi server',
       error: error
     });
     return;
   }
 };
 
-// Láº¥y ra hoáº¡t Ä‘á»™ng gáº§n nháº¥t
+// Lấy ra hoạt động gần nhất
 export const getManageProductionLogs = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
@@ -622,7 +622,9 @@ export const getManageProductionLogs = async (req: Request, res: Response): Prom
     }
 
     if (search && String(search).trim()) {
-      const escapedSearch = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedSearch = String(search)
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [{ notes: { $regex: escapedSearch, $options: 'i' } }];
     }
 
@@ -790,7 +792,7 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'farm_id khÃ´ng há»£p lá»‡'
+          message: 'farm_id không hợp lệ'
         });
         return;
       }
@@ -805,8 +807,10 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
 
       query.farm_id = new mongoose.Types.ObjectId(farm_id as string);
     } else if (req.user?.role === 'owner' || req.user?.role === 'sub_account') {
-      // Náº¿u lÃ  owner vÃ  khÃ´ng truyá»n farm_id, láº¥y log cá»§a táº¥t cáº£ farm thuá»™c owner nÃ y
-      const farms = await mongoose.model('Farm').find(getFarmAccessCondition(req.user) ?? {}).select('_id');
+      const farms = await mongoose
+        .model('Farm')
+        .find(getFarmAccessCondition(req.user) ?? {})
+        .select('_id');
       const farmIds = farms.map((f) => f._id);
       if (farmIds.length === 0) {
         res.status(200).json({ success: true, data: [] });
@@ -816,12 +820,12 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
     } else {
       res.status(400).json({
         success: false,
-        message: 'Thiáº¿u farm_id hoáº·c báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p'
+        message: 'Thiếu farm_id hoặc bạn không có quyền truy cập vào farm'
       });
       return;
     }
 
-    // náº¿u cÃ³ log cáº§n loáº¡i trá»«
+    // nếu có log cần loáº¡i trá»«
     if (exclude_log_id && mongoose.Types.ObjectId.isValid(exclude_log_id as string)) {
       query._id = {
         $ne: new mongoose.Types.ObjectId(exclude_log_id as string)
@@ -844,12 +848,11 @@ export const getRecentProductionLogs = async (req: Request, res: Response) => {
     console.error('Error fetching recent logs:', error);
     res.status(500).json({
       success: false,
-      message: 'Lá»—i server'
+      message: 'Lỗi server'
     });
   }
 };
 
-// Láº¥y nháº­t kÃ½ báº±ng tÃ i khoáº£n owner
 export const getOwnerProductionLogs = async (req: Request, res: Response) => {
   try {
     const ownerId = req.user?.id;
@@ -873,7 +876,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(farmer_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'Há»™ nÃ´ng dÃ¢n khÃ´ng há»£p lá»‡'
+          message: 'Nông trại không hợp lệ'
         });
         return;
       }
@@ -885,7 +888,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'MÃ£ trang tráº¡i khÃ´ng há»£p lá»‡'
+          message: 'Mã trang trại không hợp lệ'
         });
         return;
       }
@@ -905,7 +908,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'MÃ£ cuá»‘n nháº­t kÃ½ khÃ´ng há»£p lá»‡'
+          message: 'Mã cuốn nhật ký không hợp lệ'
         });
         return;
       }
@@ -917,7 +920,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
       if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
         res.status(400).json({
           success: false,
-          message: 'MÃ£ hoáº¡t Ä‘á»™ng khÃ´ng há»£p lá»‡'
+          message: 'Mã hoạt động không hợp lệ'
         });
         return;
       }
@@ -934,7 +937,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
         if (isNaN(startDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'NgÃ y báº¯t Ä‘áº§u khÃ´ng há»£p lá»‡'
+            message: 'Ngày bắt đầu không hợp lệ'
           });
           return;
         }
@@ -949,7 +952,7 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
         if (isNaN(endDate.getTime())) {
           res.status(400).json({
             success: false,
-            message: 'NgÃ y káº¿t thÃºc khÃ´ng há»£p lá»‡'
+            message: 'Ngày kết thúc không hợp lệ'
           });
           return;
         }
@@ -998,12 +1001,12 @@ export const getOwnerProductionLogs = async (req: Request, res: Response) => {
     console.error('Error fetching tenant logs:', error);
     res.status(500).json({
       success: false,
-      message: 'Lá»—i server'
+      message: 'Lỗi server'
     });
   }
 };
 
-// Láº¥y hoáº¡t Ä‘á»™ng gáº§n nháº¥t cá»§a owner
+// Lấy hoạt động gần nhất cấp owner
 export const getRecentActivities = async (req: Request, res: Response) => {
   try {
     const ownerId = req.user?.id;
@@ -1013,7 +1016,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
     const limitNumber = Math.max(parseInt(limit as string) || 5, 1);
 
     // ==============================
-    // Láº¥y danh sÃ¡ch farm thuá»™c owner
+    // Lấy danh sách farm thuá»™c owner
     // ==============================
 
     const farmFilter: any = {
@@ -1037,7 +1040,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
     }
 
     // ==============================
-    // Láº¥y production logs má»›i nháº¥t
+    // Lấy production logs mới nhất
     // ==============================
 
     const logs = await ProductionLogsModel.find({
@@ -1049,15 +1052,11 @@ export const getRecentActivities = async (req: Request, res: Response) => {
       .sort({ created_at: -1 })
       .limit(limitNumber);
 
-    // ==============================
-    // Transform thÃ nh activity
-    // ==============================
-
     const activities = logs.map((log: any) => ({
       id: log._id,
       type: 'create_log',
 
-      message: `${log.farm_id?.farm_name} Ä‘Ã£ thÃªm nháº­t kÃ½ "${log.activity_id?.activity_name}"`,
+      message: `${log.farm_id?.farm_name} đã nhập nhật ký "${log.activity_id?.activity_name}"`,
 
       user: {
         id: log.created_by?._id,
@@ -1083,7 +1082,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
 
     res.status(500).json({
       success: false,
-      message: 'Lá»—i server'
+      message: 'Lỗi server'
     });
   }
 };
@@ -1093,12 +1092,12 @@ export const deleteProductionLogsByActivity = async (req: Request, res: Response
     const { farm_id, activity_id } = req.query;
 
     if (!farm_id || !activity_id) {
-      res.status(400).json({ message: 'farm_id vÃ  activity_id lÃ  báº¯t buá»™c' });
+      res.status(400).json({ message: 'farm_id vÃ  activity_id lÃ  bắt buộc' });
       return;
     }
 
     if (!isValidObjectId(farm_id) || !isValidObjectId(activity_id)) {
-      res.status(400).json({ message: 'farm_id hoáº·c activity_id khÃ´ng há»£p lá»‡' });
+      res.status(400).json({ message: 'farm_id hoặc activity_id không hợp lệ' });
       return;
     }
 
@@ -1106,11 +1105,11 @@ export const deleteProductionLogsByActivity = async (req: Request, res: Response
 
     res.status(200).json({
       success: true,
-      message: 'XÃ³a nháº­t kÃ½ thÃ nh cÃ´ng',
+      message: 'Xóa nhật ký công',
       deletedCount: result.deletedCount
     });
   } catch (error) {
     console.error('Error deleting logs:', error);
-    res.status(500).json({ success: false, message: 'Lá»—i server' });
+    res.status(500).json({ success: false, message: 'Lỗi server' });
   }
 };

@@ -31,6 +31,7 @@ import traceabilityRoutes from './routes/traceability.route';
 import marketPriceRoutes from './routes/marketPrice.routes';
 import reportTemplateRoutes from './routes/reportTemplate.route';
 import exportRoutes from './routes/export.route';
+import articleRoutes from './routes/article.route';
 
 const app: Express = express();
 app.set('trust proxy', 1);
@@ -79,5 +80,6 @@ app.use('/api/traceability', traceabilityRoutes);
 app.use('/api/market-price', marketPriceRoutes);
 app.use('/api/report-template', reportTemplateRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/articles', articleRoutes);
 
 export default app;
