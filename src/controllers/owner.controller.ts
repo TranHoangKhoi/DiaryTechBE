@@ -246,7 +246,7 @@ export const getOwnerStatistics = async (req: Request, res: Response): Promise<v
         totalFarms,
         totalProductionLogs,
         totalFarmTypes,
-        totalArea: { value: totalAreaValue, unit: 'ha' },
+        totalArea: { value: totalAreaValue, unit: 'm2' },
         cropStructure,
         activeRate: parseFloat(activeRate.toFixed(2)),
         todayInsights: {

@@ -238,6 +238,7 @@ const serializeProductionBook = (book: any, latestLogCount?: number, serializedG
     : null,
   zone: book.zone_id
     ? {
+        ...(typeof book.zone_id === 'object' && typeof book.zone_id.toObject === 'function' ? book.zone_id.toObject() : (typeof book.zone_id === 'object' ? book.zone_id : {})),
         id: book.zone_id._id?.toString?.() ?? book.zone_id?.toString?.() ?? book.zone_id,
         name: book.zone_id.name ?? null,
         zone_type: book.zone_id.zone_type ?? null,
@@ -456,7 +457,7 @@ export const createProductionBook = async (req: Request, res: Response) => {
 
     await newBook.populate('farm_id', 'farm_name');
     await newBook.populate('farm_type_id', 'type_name');
-    await newBook.populate('zone_id', 'name zone_type properties area unit species');
+    await newBook.populate('zone_id');
     await newBook.populate('created_by', 'name avatar');
 
     res.status(201).json({
@@ -509,7 +510,7 @@ export const getProductionBookByFarm = async (req: Request, res: Response) => {
     const books = await ProductionBookModel.find(query)
       .populate('farm_id', 'farm_name')
       .populate('farm_type_id', 'type_name')
-      .populate('zone_id', 'name zone_type properties area unit species')
+      .populate('zone_id')
       .populate('created_by', 'name avatar')
       .sort({ start_date: sort, createdAt: sort })
       .skip((page - 1) * limit)
@@ -632,7 +633,7 @@ export const getProductionBookById = async (req: Request, res: Response) => {
 
     await book.populate('farm_id', 'farm_name');
     await book.populate('farm_type_id', 'type_name');
-    await book.populate('zone_id', 'name zone_type properties area unit species');
+    await book.populate('zone_id');
     await book.populate('created_by', 'name avatar');
 
     const farmTypeId = String((book.farm_type_id as any)?._id ?? book.farm_type_id);
@@ -715,7 +716,7 @@ export const updateProductionBook = async (req: Request, res: Response) => {
     await book.save();
     await book.populate('farm_id', 'farm_name');
     await book.populate('farm_type_id', 'type_name');
-    await book.populate('zone_id', 'name zone_type properties area unit species');
+    await book.populate('zone_id');
     await book.populate('created_by', 'name avatar');
 
     res.status(200).json({
@@ -814,7 +815,7 @@ export const getManageProductionBooks = async (req: Request, res: Response) => {
     const books = await ProductionBookModel.find(query)
       .populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id')
       .populate('farm_type_id', 'type_name image description')
-      .populate('zone_id', 'name zone_type properties area unit species')
+      .populate('zone_id')
       .populate('created_by', 'name avatar role')
       .sort({ start_date: sort, createdAt: sort })
       .skip((page - 1) * limit)
@@ -895,7 +896,7 @@ export const createManageProductionBook = async (req: Request, res: Response) =>
 
     await newBook.populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id');
     await newBook.populate('farm_type_id', 'type_name image description');
-    await newBook.populate('zone_id', 'name zone_type properties area unit species');
+    await newBook.populate('zone_id');
     await newBook.populate('created_by', 'name avatar role');
 
     res.status(201).json({
@@ -928,7 +929,7 @@ export const getManageProductionBookById = async (req: Request, res: Response) =
 
     await book.populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id');
     await book.populate('farm_type_id', 'type_name image description');
-    await book.populate('zone_id', 'name zone_type properties area unit species');
+    await book.populate('zone_id');
     await book.populate('created_by', 'name avatar role');
 
     const farmTypeId = String((book.farm_type_id as any)?._id ?? book.farm_type_id);
@@ -1024,7 +1025,7 @@ export const updateManageProductionBook = async (req: Request, res: Response) =>
     await book.save();
     await book.populate('farm_id', 'farm_name avatar province ward location farm_type_id owner_id user_id');
     await book.populate('farm_type_id', 'type_name image description');
-    await book.populate('zone_id', 'name zone_type properties area unit species');
+    await book.populate('zone_id');
     await book.populate('created_by', 'name avatar role');
 
     res.status(200).json({
@@ -1139,6 +1140,7 @@ export const getProductionBooksByOwner = async (req: Request, res: Response) => 
     const books = await ProductionBookModel.find(query)
       .populate('farm_id', 'farm_name')
       .populate('farm_type_id', 'type_name')
+      .populate('zone_id')
       .populate('created_by', 'name avatar')
       .sort({ start_date: sort, createdAt: sort })
       .skip((page - 1) * limit)
