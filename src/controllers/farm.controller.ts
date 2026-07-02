@@ -478,19 +478,37 @@ export const updateFarmSubAccount = async (req: Request, res: Response): Promise
   }
 };
 
-export const getFarmsByOwner = async (req: Request, res: Response) => {
-  try {
-    const ownerId = req.user?.id;
 
-    if (!ownerId) {
-      res.status(400).json({ message: 'Thiếu ownerId' });
+export const getFarms = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
-    const { includeDeleted } = req.query;
+    const { includeDeleted, user_id } = req.query;
     const isIncludeDeleted = includeDeleted === 'true';
 
-    const farmsQuery = FarmModel.find({ owner_id: ownerId });
+    let query: any = {};
+
+    if (user.role === 'owner') {
+      query.owner_id = user.id;
+    } else if (user.role === 'sub_account' || user.role === 'farmer') {
+      query.user_id = user.id;
+    } else if (user.role === 'superadmin' || user.role === 'admin') {
+      if (user_id) {
+        query.$or = [{ owner_id: user_id }, { user_id: user_id }];
+      } else {
+        query.owner_id = user.id;
+      }
+    } else {
+      res.status(403).json({ message: 'Forbidden' });
+      return;
+    }
+
+    const farmsQuery = FarmModel.find(query);
+    
     if (isIncludeDeleted) {
       farmsQuery.setOptions({ includeDeleted: true });
       farmsQuery.populate({ path: 'user_id', options: { includeDeleted: true } });
@@ -498,7 +516,11 @@ export const getFarmsByOwner = async (req: Request, res: Response) => {
       farmsQuery.populate('user_id');
     }
 
-    const farms = await farmsQuery.populate('farm_type_id').lean();
+    const farms = await farmsQuery
+      .populate('owner_id', 'name avatar')
+      .populate('farm_type_id')
+      .lean();
+
     const farmIds = farms.map((farm) => farm._id);
 
     const farmCrops = await FarmCrop.find({
@@ -509,8 +531,6 @@ export const getFarmsByOwner = async (req: Request, res: Response) => {
       .lean();
     const cropMap = new Map(farmCrops.map((farmCrop) => [String(farmCrop.farm_id), String(farmCrop.crop_id)]));
 
-    // Dùng find() thay vì aggregate() vì Mongoose find() tự cast type farm_id theo schema (ObjectId)
-    // Aggregate không auto-cast, dẫn đến type mismatch khi so sánh ObjectId vs String
     const farmZones = await FarmZoneModel.find({ farm_id: { $in: farmIds } })
       .select('farm_id')
       .lean();
@@ -530,55 +550,8 @@ export const getFarmsByOwner = async (req: Request, res: Response) => {
       }))
     });
   } catch (error: any) {
-    console.error(error);
+    console.error('Error fetching farms:', error);
     res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
 };
 
-export const getFarmsByUserId = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id;
-
-    // Lấy farm đầu tiên theo user_id
-    const farm = await FarmModel.findOne({ user_id: userId })
-      .populate('owner_id', 'name avatar')
-      .populate('user_id', 'name phone avatar role owner_id status cccd date_of_birth address gender province ward')
-      .populate('farm_type_id', 'type_name');
-
-    if (!farm) {
-      res.status(404).json({ message: 'Không tìm thấy farm nào cho user này' });
-      return;
-    }
-
-    res.json(farm);
-  } catch (error) {
-    console.error('Error fetching farm:', error);
-    res.status(500).json({ message: 'Lỗi server', error });
-  }
-};
-
-export const getFarmsByUserIdFormAdmin = async (req: Request, res: Response) => {
-  try {
-    // Nếu muốn lấy userId từ query hoặc params, có thể sửa dòng dưới
-    const userId = req.params.userId;
-
-    if (!userId) {
-      res.status(400).json({ message: 'Thiếu userId' });
-      return;
-    }
-
-    // Tìm tất cả farm có user_id trùng với userId
-    const farms = await FarmModel.findOne({ user_id: userId })
-      .populate('owner_id', 'name avatar')
-      .populate('user_id', 'name phone avatar role owner_id status cccd date_of_birth address gender province ward')
-      .populate('farm_type_id', 'type_name');
-
-    res.status(200).json({
-      success: true,
-      data: farms
-    });
-  } catch (error) {
-    console.error('Error fetching farms:', error);
-    res.status(500).json({ message: 'Lỗi server', error });
-  }
-};

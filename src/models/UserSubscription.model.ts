@@ -44,7 +44,7 @@ UserSubscriptionSchema.index({ module_id: 1 });
 UserSubscriptionSchema.index({ package_id: 1 });
 UserSubscriptionSchema.index({ status: 1 });
 UserSubscriptionSchema.index({ end_date: -1 });
-UserSubscriptionSchema.index({ user_id: 1, module_id: 1 });
+// UserSubscriptionSchema.index({ user_id: 1, module_id: 1 }); // Duplicate with partialFilterExpression index below
 UserSubscriptionSchema.index({ user_id: 1, status: 1, end_date: 1 });
 UserSubscriptionSchema.index(
   { user_id: 1, module_id: 1 },

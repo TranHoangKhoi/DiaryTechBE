@@ -49,7 +49,7 @@ const ProductionReportSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'ProductionBook',
       default: null,
-      index: true
+      // index: true // Đã có ProductionReportSchema.index({ book_id: 1 }, { sparse: true }); ở dưới
     },
     year: {
       type: Number,

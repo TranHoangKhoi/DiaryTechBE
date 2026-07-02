@@ -4,12 +4,8 @@ import {
   deleteManageProductionLog,
   getManageProductionLogById,
   getManageProductionLogs,
-  getOwnerProductionLogs,
-  getProductionLogsByActivityAndFarm,
-  getProductionLogsByFarm,
+  getProductionLogs,
   getProductionLogsByID,
-  getRecentActivities,
-  getRecentProductionLogs,
   updateManageProductionLog,
   deleteProductionLogsByActivity
 } from '../controllers/productionLogs.controller';
@@ -26,17 +22,7 @@ router.delete('/manage/:id', auth, checkRole('superadmin'), deleteManageProducti
 router.delete('/manage/bulk/activity', auth, checkRole('superadmin'), deleteProductionLogsByActivity);
 
 router.post('/', auth, requireModuleAccess(MODULE_KEYS.farmDiary), createProductionLog);
-router.get('/', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByActivityAndFarm);
-router.get('/farm/:farm_id', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByFarm);
-router.get('/recent', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getRecentProductionLogs);
-router.get('/owner', auth, checkRole('owner'), requireModuleAccess(MODULE_KEYS.farmDiary), getOwnerProductionLogs);
-router.get(
-  '/owner/logs/recent',
-  auth,
-  checkRole('owner'),
-  requireModuleAccess(MODULE_KEYS.farmDiary),
-  getRecentActivities
-);
+router.get('/', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogs);
 router.get('/:id', auth, requireModuleAccess(MODULE_KEYS.farmDiary), getProductionLogsByID);
 
 //

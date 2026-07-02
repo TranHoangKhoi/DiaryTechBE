@@ -37,7 +37,9 @@ const readFieldValuesByTemplate = (template: any, data: Record<string, any>, fie
 export const resolveInventoryLogQuantity = (template: any, data: Record<string, any>) => {
   for (const field of getFields(template)) {
     if (field?.type !== 'number') continue;
-    const fieldKey = String(field.key || '').trim().toLowerCase();
+    const fieldKey = String(field.key || '')
+      .trim()
+      .toLowerCase();
     if (!INVENTORY_QUANTITY_FIELD_KEYS.includes(fieldKey as any)) continue;
 
     const values = readFieldValuesByTemplate(template, data, field.key);

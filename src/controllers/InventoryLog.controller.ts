@@ -514,21 +514,29 @@ export const getInventoryTemplates = async (req: Request, res: Response): Promis
       filter.farm_id = farm_id;
     }
 
+    // Force non-admins to only see active templates
     if (!isAdminUser(req.user)) {
       filter.status = 'active';
+    }
 
-      if (farm_id) {
-        const farmAccess = await assertFarmAccess(req.user, String(farm_id));
-        if (!farmAccess.ok) {
-          res.status(farmAccess.status).json({ message: farmAccess.message });
-          return;
-        }
+    // Always resolve farm_id to get farm_type_id for fallback logic (even for superadmin)
+    if (farm_id) {
+      const farmAccess = await assertFarmAccess(req.user, String(farm_id));
+      if (!farmAccess.ok) {
+        res.status(farmAccess.status).json({ message: farmAccess.message });
+        return;
+      }
 
-        scopedFarmId = String(farmAccess.farm._id);
-        scopedFarmTypeId = String(farmAccess.farm.farm_type_id);
-        delete filter.farm_id;
-        delete filter.farm_type_id;
-      } else if (farm_type_id) {
+      scopedFarmId = String(farmAccess.farm._id);
+      scopedFarmTypeId = String(farmAccess.farm.farm_type_id);
+
+      // Delete strict equality so we can apply $or logic later
+      delete filter.farm_id;
+      delete filter.farm_type_id;
+    } else if (!isAdminUser(req.user)) {
+      // Non-admins querying without farm_id can only see global templates
+      // (or templates specific to their requested farm_type_id)
+      if (farm_type_id) {
         filter.farm_id = null;
       } else {
         filter.farm_id = null;
@@ -809,7 +817,9 @@ export const createInventoryLog = async (req: Request, res: Response): Promise<v
       const systemConfig = await SystemConfigModel.findOne();
       const allowNegative = systemConfig?.allow_negative_stock || false;
       if (!allowNegative) {
-        const stock = await InventoryStockModel.findOne({ farm_id: farm._id, material_id: resolvedMaterialId }).select('quantity_on_hand');
+        const stock = await InventoryStockModel.findOne({ farm_id: farm._id, material_id: resolvedMaterialId }).select(
+          'quantity_on_hand'
+        );
         const currentStock = stock?.quantity_on_hand || 0;
         if (currentStock < resolvedQuantity) {
           res.status(400).json({ message: `Vật tư không đủ. Khả dụng: ${currentStock}` });
@@ -899,14 +909,34 @@ export const getInventoryLogs = async (req: Request, res: Response): Promise<voi
       filter.farm_id = farm_id;
     }
 
-    const accessValidation = await applyInventoryLogAccessFilter(
-      req.user,
-      filter,
-      farm_id ? String(farm_id) : undefined
-    );
-    if (!accessValidation.ok) {
-      res.status(accessValidation.status).json({ message: accessValidation.message });
-      return;
+    const { all } = req.query;
+    const isAll = all === 'true';
+
+    // Instead of using applyInventoryLogAccessFilter which acts globally for superadmin = all,
+    // we manually handle the superadmin "all" flag.
+    if (isAdminUser(req.user) && isAll) {
+      // Superadmin requesting all farms
+    } else {
+      const accessValidation = await applyInventoryLogAccessFilter(
+        req.user,
+        filter,
+        farm_id ? String(farm_id) : undefined
+      );
+
+      // If the above returned {}, it means superadmin without 'all' flag.
+      // applyInventoryLogAccessFilter will return {ok: true} without modifying filter if isAdminUser.
+      // So we have to constrain filter if they are superadmin but didn't pass 'all'.
+      if (isAdminUser(req.user) && !isAll) {
+        if (!filter.farm_id) {
+          const myFarms = await FarmModel.find({ owner_id: req.user?.id }).select('_id').lean();
+          filter.farm_id = { $in: myFarms.map((f) => String(f._id)) };
+        }
+      }
+
+      if (!accessValidation.ok && !isAdminUser(req.user)) {
+        res.status(accessValidation.status).json({ message: accessValidation.message });
+        return;
+      }
     }
 
     if (book_id) {

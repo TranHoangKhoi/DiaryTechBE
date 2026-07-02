@@ -1,18 +1,14 @@
 import express from 'express';
 import { changePassword, updateUser } from '../controllers/user.controller';
+import { getUserProfile } from '../controllers/auth.controller';
 import { auth, checkRole } from '../middleware/auth.midleware';
 
 const router = express.Router();
 
-// Public routes
-// router.post('/register', register);
-// router.post('/login', login);
-
 // Protected routes
-// router.get('/profile', auth, getUserProfile);
-router.put('/profile', auth, updateUser);
-router.put('/profile/password', auth, changePassword);
-// router.post('/farmer/addFarm/:idUser', auth, addFarmToUser);
+router.get('/me', auth, getUserProfile);
+router.put('/me', auth, updateUser);
+router.put('/me/password', auth, changePassword);
 
 // Admin-only route (ví dụ)
 router.get('/admin-only', auth, checkRole('admin'), (req, res) => {

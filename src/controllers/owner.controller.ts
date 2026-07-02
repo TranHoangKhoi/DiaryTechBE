@@ -160,6 +160,10 @@ export const getOwnerStatistics = async (req: Request, res: Response): Promise<v
       farm_id: { $in: farmIds }
     });
 
+    const totalBooks = await ProductionBook.countDocuments({
+      farm_id: { $in: farmIds }
+    });
+
     // 4. Cơ cấu cây trồng chính
     const cropStructure = await FarmCrop.aggregate([
       {
@@ -244,6 +248,7 @@ export const getOwnerStatistics = async (req: Request, res: Response): Promise<v
       data: {
         totalSubAccounts,
         totalFarms,
+        totalBooks,
         totalProductionLogs,
         totalFarmTypes,
         totalArea: { value: totalAreaValue, unit: 'm2' },

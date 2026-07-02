@@ -19,7 +19,7 @@ const ServiceModuleSchema = new mongoose.Schema({
   sort_order: { type: Number, default: 0 }
 });
 
-ServiceModuleSchema.index({ key: 1 }, { unique: true });
+// ServiceModuleSchema.index({ key: 1 }, { unique: true }); // index này đã được tạo tự động bởi { unique: true } ở trên
 ServiceModuleSchema.index({ is_active: 1 });
 ServiceModuleSchema.index({ sort_order: 1 });
 

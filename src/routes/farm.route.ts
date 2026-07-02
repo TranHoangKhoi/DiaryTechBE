@@ -1,9 +1,7 @@
 import express from 'express';
 import {
   createFarm,
-  getFarmsByOwner,
-  getFarmsByUserId,
-  getFarmsByUserIdFormAdmin,
+  getFarms,
   updateFarmSubAccount
 } from '~/controllers/farm.controller';
 import { addCropToFarm } from '~/controllers/farmCrop.controller';
@@ -39,8 +37,6 @@ router.put(
 );
 
 // GET
-router.get('/byOwner', auth, requireAnyModuleAccess(MODULE_KEY_VALUES), getFarmsByOwner);
-router.get('/byUser', auth, requireAnyModuleAccess(MODULE_KEY_VALUES), getFarmsByUserId);
-router.get('/get-farm/:userId', auth, checkRole('superadmin'), getFarmsByUserIdFormAdmin);
+router.get('/', auth, requireAnyModuleAccess(MODULE_KEY_VALUES), getFarms);
 
 export default router;

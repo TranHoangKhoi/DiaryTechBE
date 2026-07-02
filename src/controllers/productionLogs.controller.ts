@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import ActivitiesModel from '~/models/Activities.model';
@@ -247,144 +247,7 @@ export const createProductionLog = async (req: Request, res: Response) => {
 };
 
 // Lấy danh sách hoạt động theo farmId
-export const getProductionLogsByFarm = async (req: Request, res: Response) => {
-  try {
-    const { farm_id } = req.params;
-    const { book_id, activity_id, start_date, end_date, page, limit } = req.query;
-
-    if (!farm_id) {
-      res.status(400).json({
-        success: false,
-        message: 'Thiếu farm_id'
-      });
-      return;
-    }
-
-    const farmAccess = await assertFarmAccess(req.user, farm_id);
-    if (!farmAccess.ok) {
-      res.status(farmAccess.status).json({
-        success: false,
-        message: farmAccess.message
-      });
-      return;
-    }
-
-    const filter: any = { farm_id };
-
-    if (book_id) {
-      if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
-        res.status(400).json({
-          success: false,
-          message: 'Mã cuốn nhật ký không hợp lệ'
-        });
-        return;
-      }
-
-      filter.book_id = book_id;
-    }
-
-    if (activity_id) {
-      if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
-        res.status(400).json({
-          success: false,
-          message: 'Mã hoạt động không hợp lệ'
-        });
-        return;
-      }
-
-      filter.activity_id = activity_id;
-    }
-
-    if (start_date || end_date) {
-      const dateFilter: Record<string, Date> = {};
-
-      if (start_date) {
-        const startDate = new Date(start_date as string);
-
-        if (isNaN(startDate.getTime())) {
-          res.status(400).json({
-            success: false,
-            message: 'NgÃ y bắt đầu không hợp lệ'
-          });
-          return;
-        }
-
-        startDate.setHours(0, 0, 0, 0);
-        dateFilter.$gte = startDate;
-      }
-
-      if (end_date) {
-        const endDate = new Date(end_date as string);
-
-        if (isNaN(endDate.getTime())) {
-          res.status(400).json({
-            success: false,
-            message: 'NgÃ y kết thúc không hợp lệ'
-          });
-          return;
-        }
-
-        endDate.setHours(23, 59, 59, 999);
-        dateFilter.$lte = endDate;
-      }
-
-      filter.date = dateFilter;
-    }
-
-    const baseQuery = ProductionLogsModel.find(filter)
-      .populate('farm_id', 'farm_name avatar location')
-      .populate('activity_id', 'activity_name image fields')
-      .populate('created_by', 'name avatar')
-      .populate('book_id', 'name')
-      .sort({ created_at: -1 });
-
-    // =====================================
-    // ðŸ”¹ Nếu có page + limit -> Web dùng
-    // =====================================
-
-    if (page && limit) {
-      const pageNumber = Math.max(parseInt(page as string), 1);
-      const limitNumber = Math.max(parseInt(limit as string), 1);
-
-      const skip = (pageNumber - 1) * limitNumber;
-
-      const [logs, total] = await Promise.all([
-        baseQuery.clone().skip(skip).limit(limitNumber),
-        ProductionLogsModel.countDocuments(filter)
-      ]);
-
-      res.status(200).json({
-        success: true,
-        data: logs,
-        pagination: {
-          total,
-          page: pageNumber,
-          limit: limitNumber,
-          totalPages: Math.ceil(total / limitNumber)
-        }
-      });
-      return;
-    }
-
-    // =====================================
-    // ðŸ”¹ Không truyá»n gì -> App cũ dùng
-    // =====================================
-    const logs = await baseQuery;
-
-    res.status(200).json({
-      success: true,
-      data: logs
-    });
-    return;
-  } catch (error) {
-    console.error('Error fetching production logs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server'
-    });
-    return;
-  }
-};
+;
 
 export const getProductionLogsByID = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -428,6 +291,16 @@ export const getProductionLogsByID = async (req: Request, res: Response): Promis
             path: 'user_id',
             model: 'User',
             select: 'name phone avatar role'
+          },
+          {
+            path: 'ward',
+            model: 'Ward',
+            select: 'name'
+          },
+          {
+            path: 'province',
+            model: 'Province',
+            select: 'name'
           }
         ]
       })
@@ -782,310 +655,12 @@ export const deleteManageProductionLog = async (req: Request, res: Response): Pr
   }
 };
 
-export const getRecentProductionLogs = async (req: Request, res: Response) => {
-  try {
-    const { farm_id, limit, exclude_log_id } = req.query;
-    const limitNumber = Math.max(parseInt(limit as string) || 5, 1);
-    const query: any = {};
+;
 
-    if (farm_id) {
-      if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
-        res.status(400).json({
-          success: false,
-          message: 'farm_id không hợp lệ'
-        });
-        return;
-      }
-      const farmAccess = await assertFarmAccess(req.user, farm_id as string);
-      if (!farmAccess.ok) {
-        res.status(farmAccess.status).json({
-          success: false,
-          message: farmAccess.message
-        });
-        return;
-      }
-
-      query.farm_id = new mongoose.Types.ObjectId(farm_id as string);
-    } else if (req.user?.role === 'owner' || req.user?.role === 'sub_account') {
-      const farms = await mongoose
-        .model('Farm')
-        .find(getFarmAccessCondition(req.user) ?? {})
-        .select('_id');
-      const farmIds = farms.map((f) => f._id);
-      if (farmIds.length === 0) {
-        res.status(200).json({ success: true, data: [] });
-        return;
-      }
-      query.farm_id = { $in: farmIds };
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Thiếu farm_id hoặc bạn không có quyền truy cập vào farm'
-      });
-      return;
-    }
-
-    // nếu có log cần loáº¡i trá»«
-    if (exclude_log_id && mongoose.Types.ObjectId.isValid(exclude_log_id as string)) {
-      query._id = {
-        $ne: new mongoose.Types.ObjectId(exclude_log_id as string)
-      };
-    }
-
-    const logs = await ProductionLogsModel.find(query)
-      .populate('farm_id', 'farm_name avatar province ward location')
-      .populate('activity_id', 'activity_name image fields')
-      .populate('created_by', 'name avatar')
-      .populate('book_id', 'name')
-      .sort({ created_at: -1 })
-      .limit(limitNumber);
-
-    res.status(200).json({
-      success: true,
-      data: logs
-    });
-  } catch (error) {
-    console.error('Error fetching recent logs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server'
-    });
-  }
-};
-
-export const getOwnerProductionLogs = async (req: Request, res: Response) => {
-  try {
-    const ownerId = req.user?.id;
-    console.log('ownerId: ', req.user?.id);
-
-    const { farmer_id, farm_id, book_id, activity_id, start_date, end_date, search, page = 1, limit = 10 } = req.query;
-
-    const pageNumber = Math.max(parseInt(page as string), 1);
-    const limitNumber = Math.max(parseInt(limit as string), 1);
-    const skip = (pageNumber - 1) * limitNumber;
-
-    // ==============================
-    // TÃ¬m farm thuá»™c tenant
-    // ==============================
-
-    const farmFilter: any = {
-      owner_id: ownerId
-    };
-
-    if (farmer_id) {
-      if (!mongoose.Types.ObjectId.isValid(farmer_id as string)) {
-        res.status(400).json({
-          success: false,
-          message: 'Nông trại không hợp lệ'
-        });
-        return;
-      }
-
-      farmFilter.user_id = farmer_id;
-    }
-
-    if (farm_id) {
-      if (!mongoose.Types.ObjectId.isValid(farm_id as string)) {
-        res.status(400).json({
-          success: false,
-          message: 'Mã trang trại không hợp lệ'
-        });
-        return;
-      }
-
-      farmFilter._id = farm_id;
-    }
-
-    const farms = await mongoose.model('Farm').find(farmFilter).select('_id');
-
-    const farmIds = farms.map((f: any) => f._id);
-
-    const logFilter: any = {
-      farm_id: { $in: farmIds }
-    };
-
-    if (book_id) {
-      if (!mongoose.Types.ObjectId.isValid(book_id as string)) {
-        res.status(400).json({
-          success: false,
-          message: 'Mã cuốn nhật ký không hợp lệ'
-        });
-        return;
-      }
-
-      logFilter.book_id = book_id;
-    }
-
-    if (activity_id) {
-      if (!mongoose.Types.ObjectId.isValid(activity_id as string)) {
-        res.status(400).json({
-          success: false,
-          message: 'Mã hoạt động không hợp lệ'
-        });
-        return;
-      }
-
-      logFilter.activity_id = activity_id;
-    }
-
-    if (start_date || end_date) {
-      const dateFilter: Record<string, Date> = {};
-
-      if (start_date) {
-        const startDate = new Date(start_date as string);
-
-        if (isNaN(startDate.getTime())) {
-          res.status(400).json({
-            success: false,
-            message: 'Ngày bắt đầu không hợp lệ'
-          });
-          return;
-        }
-
-        startDate.setHours(0, 0, 0, 0);
-        dateFilter.$gte = startDate;
-      }
-
-      if (end_date) {
-        const endDate = new Date(end_date as string);
-
-        if (isNaN(endDate.getTime())) {
-          res.status(400).json({
-            success: false,
-            message: 'Ngày kết thúc không hợp lệ'
-          });
-          return;
-        }
-
-        endDate.setHours(23, 59, 59, 999);
-        dateFilter.$lte = endDate;
-      }
-
-      logFilter.date = dateFilter;
-    }
-
-    if (search && (search as string).trim()) {
-      const escapedSearch = (search as string).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-      logFilter.$or = [{ notes: { $regex: escapedSearch, $options: 'i' } }];
-    }
-
-    // ==============================
-    // Query production logs
-    // ==============================
-
-    const [logs, total] = await Promise.all([
-      ProductionLogsModel.find(logFilter)
-        .populate('farm_id', 'farm_name avatar province ward location')
-        .populate('activity_id', 'activity_name image description fields')
-        .populate('created_by', 'name avatar')
-        .populate('book_id', 'name')
-        .sort({ created_at: -1 })
-        .skip(skip)
-        .limit(limitNumber),
-
-      ProductionLogsModel.countDocuments(logFilter)
-    ]);
-
-    res.status(200).json({
-      success: true,
-      data: logs,
-      pagination: {
-        total,
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: Math.ceil(total / limitNumber)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching tenant logs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server'
-    });
-  }
-};
+;
 
 // Lấy hoạt động gần nhất cấp owner
-export const getRecentActivities = async (req: Request, res: Response) => {
-  try {
-    const ownerId = req.user?.id;
-
-    const { limit = 4, farm_id } = req.query;
-
-    const limitNumber = Math.max(parseInt(limit as string) || 5, 1);
-
-    // ==============================
-    // Lấy danh sách farm thuá»™c owner
-    // ==============================
-
-    const farmFilter: any = {
-      owner_id: ownerId
-    };
-
-    if (farm_id) {
-      farmFilter._id = farm_id;
-    }
-
-    const farms = await mongoose.model('Farm').find(farmFilter).select('_id farm_name avatar');
-
-    const farmIds = farms.map((f: any) => f._id);
-
-    if (!farmIds.length) {
-      res.status(200).json({
-        success: true,
-        data: []
-      });
-      return;
-    }
-
-    // ==============================
-    // Lấy production logs mới nhất
-    // ==============================
-
-    const logs = await ProductionLogsModel.find({
-      farm_id: { $in: farmIds }
-    })
-      .populate('farm_id', 'farm_name avatar province ward')
-      .populate('activity_id', 'activity_name image fields')
-      .populate('created_by', 'name avatar')
-      .sort({ created_at: -1 })
-      .limit(limitNumber);
-
-    const activities = logs.map((log: any) => ({
-      id: log._id,
-      type: 'create_log',
-
-      message: `${log.farm_id?.farm_name} đã nhập nhật ký "${log.activity_id?.activity_name}"`,
-
-      user: {
-        id: log.created_by?._id,
-        name: log.created_by?.name,
-        avatar: log.created_by?.avatar
-      },
-
-      farm: {
-        id: log.farm_id?._id,
-        name: log.farm_id?.farm_name,
-        avatar: log.farm_id?.avatar
-      },
-
-      created_at: log.created_at
-    }));
-
-    res.status(200).json({
-      success: true,
-      data: activities
-    });
-  } catch (error) {
-    console.error('Error fetching recent activities:', error);
-
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server'
-    });
-  }
-};
+;
 
 export const deleteProductionLogsByActivity = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -1111,5 +686,87 @@ export const deleteProductionLogsByActivity = async (req: Request, res: Response
   } catch (error) {
     console.error('Error deleting logs:', error);
     res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
+
+export const getProductionLogs = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { farm_id, book_id, activity_id, scope, limit, sort, start_date, end_date } = req.query;
+
+    const query: any = {};
+
+    // Base query according to role and scope
+    if (user.role === 'owner' || scope === 'owner') {
+      const farms = await FarmModel.find({ owner_id: user.id }).select('_id');
+      const farmIds = farms.map(f => f._id);
+      
+      if (farm_id) {
+        if (!farmIds.some(id => String(id) === String(farm_id))) {
+          res.status(403).json({ message: 'Farm access denied' });
+          return;
+        }
+        query.farm_id = farm_id;
+      } else {
+        query.farm_id = { $in: farmIds };
+      }
+    } else {
+      if (!farm_id) {
+        res.status(400).json({ message: 'farm_id is required' });
+        return;
+      }
+      query.farm_id = farm_id;
+    }
+
+    if (book_id) query.book_id = book_id;
+    if (activity_id) query.activity_id = activity_id;
+
+    if (start_date || end_date) {
+      query.date = {};
+      if (start_date) query.date.$gte = new Date(start_date as string);
+      if (end_date) query.date.$lte = new Date(end_date as string);
+    }
+
+    const pageIndex = Number(req.query.page) || 1;
+    const limitSize = limit ? Number(limit) : null;
+
+    const total = await ProductionLogsModel.countDocuments(query);
+
+    let queryBuilder = ProductionLogsModel.find(query)
+      .populate('activity_id', 'activity_name icon fields type expected_days description color code type_activity')
+      .populate('created_by', 'name email phone avatar')
+      .populate('farm_id', 'farm_name location avatar ward province');
+
+    if (sort) {
+      const sortOrder = String(sort).startsWith('-') ? -1 : 1;
+      const sortField = String(sort).replace(/^-/, '');
+      queryBuilder = queryBuilder.sort({ [sortField]: sortOrder });
+    } else {
+      queryBuilder = queryBuilder.sort({ date: -1 }); // Default
+    }
+
+    if (limitSize) {
+      const skip = (pageIndex - 1) * limitSize;
+      queryBuilder = queryBuilder.skip(skip).limit(limitSize);
+    }
+
+    const logs = await queryBuilder.lean();
+
+    res.status(200).json({
+      success: true,
+      total,
+      page: pageIndex,
+      limit: limitSize || total,
+      data: logs
+    });
+  } catch (error: any) {
+    console.error('Error fetching production logs:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
 };

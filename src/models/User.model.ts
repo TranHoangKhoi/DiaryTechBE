@@ -221,7 +221,7 @@ UserSchema.pre('aggregate', function (next) {
 });
 
 // UserSchema.index({ phone: 1 }, { unique: true }); // index này đã được tạo tự động bởi { unique: true } ở trên
-UserSchema.index({ external_id: 1 }, { unique: true });
+// UserSchema.index({ external_id: 1 }, { unique: true }); // index này đã được tạo tự động bởi { unique: true } ở trên
 UserSchema.index({ owner_id: 1 }); // khi load sub-account theo chủ
 UserSchema.index({ allowed_modules: 1 });
 UserSchema.index({ role: 1 });
