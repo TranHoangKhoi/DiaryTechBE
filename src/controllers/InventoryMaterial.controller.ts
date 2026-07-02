@@ -139,6 +139,7 @@ const handleControllerError = (res: Response, error: unknown, logLabel: string) 
   }
 
   if (error instanceof mongoose.mongo.MongoServerError && error.code === 11000) {
+    console.warn(`[409 Conflict] ${logLabel} - Duplicate Key Error (Unique Constraint Violation):`, error.keyValue);
     res.status(409).json({ message: 'Inventory material already exists', keyValue: error.keyValue });
     return;
   }

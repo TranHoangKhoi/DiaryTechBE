@@ -50,7 +50,7 @@ app.use(
 );
 
 // Routes
-app.use('/api/checkHeath', (req, res) => {
+app.use('/api/checkHeath', (req: any, res: { send: (arg0: string) => void; }) => {
   res.send('Server is running');
 });
 app.use('/api/auth', authRoutes);

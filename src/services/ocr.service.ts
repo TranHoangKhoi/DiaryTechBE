@@ -1,22 +1,26 @@
 import axios from 'axios';
 import InventoryMaterialModel from '~/models/InventoryMaterial.model';
 
-const getOcrConfig = () => ({
-  apiUrl: process.env.OCR_API_URL || 'https://api-ocr.bittechx.cloud',
-  apiKey: process.env.OCR_API_KEY || 'ak_ACCESS.SECRET',
-  deviceId: process.env['x-device-id'] || 'backend-server'
-});
+const getOcrConfig = () => {
+  let apiUrl = process.env.OCR_API_URL || 'https://api-ocr.bittechx.cloud';
+  apiUrl = apiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+
+  return {
+    apiUrl,
+    apiKey: process.env.OCR_API_KEY || 'ak_ACCESS.SECRET',
+    deviceId: process.env['x-device-id'] || 'backend-server'
+  };
+};
 
 export const trainProduct = async (material: any, imagesToTrain: string[]) => {
   if (!imagesToTrain || imagesToTrain.length === 0) return;
 
-  const numericId = parseInt(String(material._id).slice(-8), 16);
-
   try {
     const payload = {
-      id: numericId,
+      id: String(material._id),
       name: material.code,
       price: 1, // Tránh lỗi validation "not price" của backend python khi truyền 0
+      farm_id: String(material.farm_id),
       images: imagesToTrain
     };
 
@@ -32,10 +36,12 @@ export const trainProduct = async (material: any, imagesToTrain: string[]) => {
     });
 
     if (response.status === 200 || response.status === 201) {
-      await InventoryMaterialModel.findByIdAndUpdate(material._id, {
-        $set: { is_embedded: true },
-        $inc: { embedded_images_count: imagesToTrain.length }
-      });
+      const actualNumImages = response.data?.num_images;
+      const updateQuery = actualNumImages !== undefined
+        ? { $set: { is_embedded: true, embedded_images_count: actualNumImages } }
+        : { $set: { is_embedded: true }, $inc: { embedded_images_count: imagesToTrain.length } };
+
+      await InventoryMaterialModel.findByIdAndUpdate(material._id, updateQuery);
       console.log(`[OCR Service] Successfully trained product ${material.code}`);
     }
   } catch (error: any) {
@@ -46,11 +52,10 @@ export const trainProduct = async (material: any, imagesToTrain: string[]) => {
 export const updateProductEmbedding = async (material: any, newImageUrls: string[]) => {
   if (!newImageUrls || newImageUrls.length === 0) return;
 
-  const numericId = parseInt(String(material._id).slice(-8), 16);
-
   try {
     const formData = new FormData();
-    formData.append('product_id', String(numericId));
+    formData.append('product_id', String(material._id));
+    formData.append('farm_id', String(material.farm_id));
     formData.append('name', material.code);
 
     for (const [index, url] of newImageUrls.entries()) {
@@ -69,9 +74,12 @@ export const updateProductEmbedding = async (material: any, newImageUrls: string
     });
 
     if (response.status === 200 || response.status === 201) {
-      await InventoryMaterialModel.findByIdAndUpdate(material._id, {
-        $inc: { embedded_images_count: newImageUrls.length }
-      });
+      const actualNumImages = response.data?.num_images;
+      const updateQuery = actualNumImages !== undefined
+        ? { $set: { embedded_images_count: actualNumImages } }
+        : { $inc: { embedded_images_count: newImageUrls.length } };
+
+      await InventoryMaterialModel.findByIdAndUpdate(material._id, updateQuery);
       console.log(`[OCR Service] Successfully updated embedding for ${material.code}`);
     }
   } catch (error: any) {
